@@ -1,3 +1,18 @@
 theme: jekyll-theme-minimal
 title: BLE Data Exfiltration for RT
 description: Exfiltrate data from laptop via BLE
+encoding: utf-8
+plugins:
+  - jekyll-sitemap
+defaults:
+  -
+    scope:
+      path: ""
+    values:
+      layout: "default"
+exclude:
+  - package.json
+  - README.md
+  - node_modules
+  - Gemfile
+  - vendor
