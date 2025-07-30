@@ -40,7 +40,7 @@ limitations under the License.
     
     <link rel="icon" href="icon.png">
     
-    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="styles/main.css">
     
     
   </head>
@@ -50,13 +50,11 @@ limitations under the License.
     <h1>Web Bluetooth / Get Characteristics Sample</h1>
     <p class="availability">
       Available in <a target="_blank" href="https://www.chromestatus.com/feature/5264933985976320">Chrome 50+</a> |
-      <a target="_blank" href="https://github.com/googlechrome/samples/blob/gh-pages/web-bluetooth/get-characteristics.html">View on GitHub</a> |
-      <a  href="index.html">Browse Samples</a>
     </p>
     <p>The <a href="https://developers.google.com/web/updates/2015/07/interact-with-ble-devices-on-the-web">Web Bluetooth
   API</a> lets websites discover and communicate with devices over the
 Bluetooth 4 wireless standard using the Generic Attribute Profile (GATT). It is
-currently partially implemented in Android M, Chrome OS, Mac, and Windows 10.</p>
+currently partially implemented in Android M, Chrome OS, Mac, and Windows 10. This page is built based on the sample by Chrome for Web Bluetooth. </p>
 
 <script>
   if('serviceWorker' in navigator) {
@@ -105,14 +103,6 @@ currently partially implemented in Android M, Chrome OS, Mac, and Windows 10.</p
   });
 </script>
 
-
-<p>This sample illustrates the use of the Web Bluetooth API to get all
-characteristics of an advertised service from a nearby Bluetooth Low Energy
-Device. You may want to try this demo with the BLE Peripheral Simulator App
-from the <a target="_blank"
-href="https://play.google.com/store/apps/details?id=io.github.webbluetoothcg.bletestperipheral">Google
-Play Store</a> and check out the <a href="get-characteristics-async-await.html">Get
-Characteristics (Async Await)</a> sample.</p>
 
 <form>
   <input id="service" type="text" list="services" autofocus placeholder="Bluetooth Service">
