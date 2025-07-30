@@ -19,10 +19,10 @@ limitations under the License.
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="description" content="Sample illustrating the use of Web Bluetooth / Get Characteristics.">
+    <meta name="description" content="Sample illustrating the use of Web Bluetooth / Write Descriptor.">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     
-    <title>Web Bluetooth / Get Characteristics Sample</title>
+    <title>Web Bluetooth / Write Descriptor Sample</title>
     <script>
       // Add a global error event listener early on in the page load, to help ensure that browsers
       // which don't support specific functionality still end up displaying a meaningful message.
@@ -47,14 +47,16 @@ limitations under the License.
 
   <body>
     <img class="pageIcon" src="icon.png">
-    <h1>Web Bluetooth / Get Characteristics Sample</h1>
+    <h1>Web Bluetooth / Write Descriptor Sample</h1>
     <p class="availability">
-      Available in <a target="_blank" href="https://www.chromestatus.com/feature/5264933985976320">Chrome 50+</a> |
+      Available in <a target="_blank" href="https://www.chromestatus.com/feature/5264933985976320">Chrome 58+</a> |
+      <a target="_blank" href="https://github.com/googlechrome/samples/blob/gh-pages/web-bluetooth/write-descriptor.html">View on GitHub</a> |
+      <a  href="index.html">Browse Samples</a>
     </p>
     <p>The <a href="https://developers.google.com/web/updates/2015/07/interact-with-ble-devices-on-the-web">Web Bluetooth
   API</a> lets websites discover and communicate with devices over the
 Bluetooth 4 wireless standard using the Generic Attribute Profile (GATT). It is
-currently partially implemented in Android M, Chrome OS, Mac, and Windows 10. This page is built based on the sample by Chrome for Web Bluetooth. </p>
+currently partially implemented in Android M, Chrome OS, Mac, and Windows 10.</p>
 
 <script>
   if('serviceWorker' in navigator) {
@@ -104,11 +106,19 @@ currently partially implemented in Android M, Chrome OS, Mac, and Windows 10. Th
 </script>
 
 
-<form>
+<p>This sample illustrates the use of the Web Bluetooth API to write to the
+descriptor "Characteristic User Description" on a nearby Bluetooth Low Energy
+Device. You may want to try this demo with the BLE Peripheral Simulator App
+from the <a target="_blank"
+href="https://play.google.com/store/apps/details?id=io.github.webbluetoothcg.bletestperipheral">Google
+Play Store</a> and check out the <a
+href="write-descriptor-async-await.html">Write Descriptor (Async Await)</a> sample.</p>
+
+<p>
   <input id="service" type="text" list="services" autofocus placeholder="Bluetooth Service">
-  <input id="characteristic" type="text" list="characteristics" placeholder="Optional Bluetooth Characteristic">
-  <button>Get characteristics</button>
-</form>
+  <input id="characteristic" type="text" list="characteristics" placeholder="Bluetooth Characteristic">
+  <button id="readButton">Get Characteristic User Description</button>
+</p>
 
 <datalist id="services">
   <option value="alert_notification">alert_notification</option>
@@ -310,6 +320,11 @@ currently partially implemented in Android M, Chrome OS, Mac, and Windows 10. Th
 </datalist>
 
 
+<p>
+  <input id="description" type="text" placeholder="Characteristic User Description">
+  <button id="writeButton" disabled>Set Characteristic User Description</button>
+</p>
+
 <script>
   var ChromeSamples = {
     log: function() {
@@ -350,8 +365,8 @@ currently partially implemented in Android M, Chrome OS, Mac, and Windows 10. Th
   if (/Chrome\/(\d+\.\d+.\d+.\d+)/.test(navigator.userAgent)){
     // Let's log a warning if the sample is not supposed to execute on this
     // version of Chrome.
-    if (50 > parseInt(RegExp.$1)) {
-      ChromeSamples.setStatus('Warning! Keep in mind this sample has been tested with Chrome ' + 50 + '.');
+    if (58 > parseInt(RegExp.$1)) {
+      ChromeSamples.setStatus('Warning! Keep in mind this sample has been tested with Chrome ' + 58 + '.');
     }
   }
 </script>
@@ -361,7 +376,9 @@ currently partially implemented in Android M, Chrome OS, Mac, and Windows 10. Th
 
   
     
-      <script>function onButtonClick() {
+      <script>var myDescriptor;
+
+function onReadButtonClick() {
   let serviceUuid = document.querySelector('#service').value;
   if (serviceUuid.startsWith('0x')) {
     serviceUuid = parseInt(serviceUuid);
@@ -372,8 +389,9 @@ currently partially implemented in Android M, Chrome OS, Mac, and Windows 10. Th
     characteristicUuid = parseInt(characteristicUuid);
   }
 
-  log('Requesting Bluetooth Device...');
-  navigator.bluetooth.requestDevice({filters: [{services: [serviceUuid]}]})
+  log('Requesting any Bluetooth Device...');
+  navigator.bluetooth.requestDevice({
+	  filters: [{services: ["caec2ebc-e1d9-11e6-bf01-fe55135034f0"]}]}) 
   .then(device => {
     log('Connecting to GATT Server...');
     return device.gatt.connect();
@@ -383,17 +401,40 @@ currently partially implemented in Android M, Chrome OS, Mac, and Windows 10. Th
     return server.getPrimaryService(serviceUuid);
   })
   .then(service => {
-    log('Getting Characteristics...');
-    if (characteristicUuid) {
-      // Get all characteristics that match this UUID.
-      return service.getCharacteristics(characteristicUuid);
-    }
-    // Get all characteristics.
-    return service.getCharacteristics();
+    log('Getting Characteristic...');
+    return service.getCharacteristic(characteristicUuid);
   })
-  .then(characteristics => {
-    log('> Characteristics: ' +
-      characteristics.map(c => c.uuid).join('\n' + ' '.repeat(19)));
+  .then(characteristic => {
+    log('Getting Descriptor...');
+    return characteristic.getDescriptor('gatt.characteristic_user_description');
+  })
+  .then(descriptor => {
+    document.querySelector('#writeButton').disabled =
+        !descriptor.characteristic.properties.write;
+    myDescriptor = descriptor;
+    log('Reading Descriptor...');
+    return descriptor.readValue();
+  })
+  .then(value => {
+    let decoder = new TextDecoder('utf-8');
+    log('> Characteristic User Description: ' + decoder.decode(value));
+  })
+  .catch(error => {
+    document.querySelector('#writeButton').disabled = true;
+    log('Argh! ' + error);
+  });
+}
+
+function onWriteButtonClick() {
+  if (!myDescriptor) {
+    return;
+  }
+  let encoder = new TextEncoder('utf-8');
+  let value = document.querySelector('#description').value;
+  log('Setting Characteristic User Description...');
+  myDescriptor.writeValue(encoder.encode(value))
+  .then(_ => {
+    log('> Characteristic User Description changed to: ' + value);
   })
   .catch(error => {
     log('Argh! ' + error);
@@ -408,7 +449,9 @@ currently partially implemented in Android M, Chrome OS, Mac, and Windows 10. Th
   
 
   
-    <figure class="highlight"><pre><code class="language-js" data-lang="js"><span class="kd">function</span> <span class="nx">onButtonClick</span><span class="p">()</span> <span class="p">{</span>
+    <figure class="highlight"><pre><code class="language-js" data-lang="js"><span class="kd">var</span> <span class="nx">myDescriptor</span><span class="p">;</span>
+
+<span class="kd">function</span> <span class="nx">onReadButtonClick</span><span class="p">()</span> <span class="p">{</span>
   <span class="kd">let</span> <span class="nx">serviceUuid</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">querySelector</span><span class="p">(</span><span class="dl">'</span><span class="s1">#service</span><span class="dl">'</span><span class="p">).</span><span class="nx">value</span><span class="p">;</span>
   <span class="k">if</span> <span class="p">(</span><span class="nx">serviceUuid</span><span class="p">.</span><span class="nx">startsWith</span><span class="p">(</span><span class="dl">'</span><span class="s1">0x</span><span class="dl">'</span><span class="p">))</span> <span class="p">{</span>
     <span class="nx">serviceUuid</span> <span class="o">=</span> <span class="nb">parseInt</span><span class="p">(</span><span class="nx">serviceUuid</span><span class="p">);</span>
@@ -419,8 +462,11 @@ currently partially implemented in Android M, Chrome OS, Mac, and Windows 10. Th
     <span class="nx">characteristicUuid</span> <span class="o">=</span> <span class="nb">parseInt</span><span class="p">(</span><span class="nx">characteristicUuid</span><span class="p">);</span>
   <span class="p">}</span>
 
-  <span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">Requesting Bluetooth Device...</span><span class="dl">'</span><span class="p">);</span>
-  <span class="nb">navigator</span><span class="p">.</span><span class="nx">bluetooth</span><span class="p">.</span><span class="nx">requestDevice</span><span class="p">({</span><span class="na">filters</span><span class="p">:</span> <span class="p">[{</span><span class="na">services</span><span class="p">:</span> <span class="p">[</span><span class="nx">serviceUuid</span><span class="p">]}]})</span>
+  <span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">Requesting any Bluetooth Device...</span><span class="dl">'</span><span class="p">);</span>
+  <span class="nb">navigator</span><span class="p">.</span><span class="nx">bluetooth</span><span class="p">.</span><span class="nx">requestDevice</span><span class="p">({</span>
+   <span class="c1">// filters: [...] &lt;- Prefer filters to save energy &amp; show relevant devices.</span>
+      <span class="na">acceptAllDevices</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+      <span class="na">optionalServices</span><span class="p">:</span> <span class="p">[</span><span class="nx">serviceUuid</span><span class="p">]})</span>
   <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">device</span> <span class="o">=&gt;</span> <span class="p">{</span>
     <span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">Connecting to GATT Server...</span><span class="dl">'</span><span class="p">);</span>
     <span class="k">return</span> <span class="nx">device</span><span class="p">.</span><span class="nx">gatt</span><span class="p">.</span><span class="nx">connect</span><span class="p">();</span>
@@ -430,17 +476,40 @@ currently partially implemented in Android M, Chrome OS, Mac, and Windows 10. Th
     <span class="k">return</span> <span class="nx">server</span><span class="p">.</span><span class="nx">getPrimaryService</span><span class="p">(</span><span class="nx">serviceUuid</span><span class="p">);</span>
   <span class="p">})</span>
   <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">service</span> <span class="o">=&gt;</span> <span class="p">{</span>
-    <span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">Getting Characteristics...</span><span class="dl">'</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="nx">characteristicUuid</span><span class="p">)</span> <span class="p">{</span>
-      <span class="c1">// Get all characteristics that match this UUID.</span>
-      <span class="k">return</span> <span class="nx">service</span><span class="p">.</span><span class="nx">getCharacteristics</span><span class="p">(</span><span class="nx">characteristicUuid</span><span class="p">);</span>
-    <span class="p">}</span>
-    <span class="c1">// Get all characteristics.</span>
-    <span class="k">return</span> <span class="nx">service</span><span class="p">.</span><span class="nx">getCharacteristics</span><span class="p">();</span>
+    <span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">Getting Characteristic...</span><span class="dl">'</span><span class="p">);</span>
+    <span class="k">return</span> <span class="nx">service</span><span class="p">.</span><span class="nx">getCharacteristic</span><span class="p">(</span><span class="nx">characteristicUuid</span><span class="p">);</span>
   <span class="p">})</span>
-  <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">characteristics</span> <span class="o">=&gt;</span> <span class="p">{</span>
-    <span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">&gt; Characteristics: </span><span class="dl">'</span> <span class="o">+</span>
-      <span class="nx">characteristics</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nx">c</span> <span class="o">=&gt;</span> <span class="nx">c</span><span class="p">.</span><span class="nx">uuid</span><span class="p">).</span><span class="nx">join</span><span class="p">(</span><span class="dl">'</span><span class="se">\n</span><span class="dl">'</span> <span class="o">+</span> <span class="dl">'</span><span class="s1"> </span><span class="dl">'</span><span class="p">.</span><span class="nx">repeat</span><span class="p">(</span><span class="mi">19</span><span class="p">)));</span>
+  <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">characteristic</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">Getting Descriptor...</span><span class="dl">'</span><span class="p">);</span>
+    <span class="k">return</span> <span class="nx">characteristic</span><span class="p">.</span><span class="nx">getDescriptor</span><span class="p">(</span><span class="dl">'</span><span class="s1">gatt.characteristic_user_description</span><span class="dl">'</span><span class="p">);</span>
+  <span class="p">})</span>
+  <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">descriptor</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nb">document</span><span class="p">.</span><span class="nx">querySelector</span><span class="p">(</span><span class="dl">'</span><span class="s1">#writeButton</span><span class="dl">'</span><span class="p">).</span><span class="nx">disabled</span> <span class="o">=</span>
+        <span class="o">!</span><span class="nx">descriptor</span><span class="p">.</span><span class="nx">characteristic</span><span class="p">.</span><span class="nx">properties</span><span class="p">.</span><span class="nx">write</span><span class="p">;</span>
+    <span class="nx">myDescriptor</span> <span class="o">=</span> <span class="nx">descriptor</span><span class="p">;</span>
+    <span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">Reading Descriptor...</span><span class="dl">'</span><span class="p">);</span>
+    <span class="k">return</span> <span class="nx">descriptor</span><span class="p">.</span><span class="nx">readValue</span><span class="p">();</span>
+  <span class="p">})</span>
+  <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">value</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="kd">let</span> <span class="nx">decoder</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">TextDecoder</span><span class="p">(</span><span class="dl">'</span><span class="s1">utf-8</span><span class="dl">'</span><span class="p">);</span>
+    <span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">&gt; Characteristic User Description: </span><span class="dl">'</span> <span class="o">+</span> <span class="nx">decoder</span><span class="p">.</span><span class="nx">decode</span><span class="p">(</span><span class="nx">value</span><span class="p">));</span>
+  <span class="p">})</span>
+  <span class="p">.</span><span class="k">catch</span><span class="p">(</span><span class="nx">error</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nb">document</span><span class="p">.</span><span class="nx">querySelector</span><span class="p">(</span><span class="dl">'</span><span class="s1">#writeButton</span><span class="dl">'</span><span class="p">).</span><span class="nx">disabled</span> <span class="o">=</span> <span class="kc">true</span><span class="p">;</span>
+    <span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">Argh! </span><span class="dl">'</span> <span class="o">+</span> <span class="nx">error</span><span class="p">);</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+
+<span class="kd">function</span> <span class="nx">onWriteButtonClick</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">myDescriptor</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="kd">let</span> <span class="nx">encoder</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">TextEncoder</span><span class="p">(</span><span class="dl">'</span><span class="s1">utf-8</span><span class="dl">'</span><span class="p">);</span>
+  <span class="kd">let</span> <span class="nx">value</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">querySelector</span><span class="p">(</span><span class="dl">'</span><span class="s1">#description</span><span class="dl">'</span><span class="p">).</span><span class="nx">value</span><span class="p">;</span>
+  <span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">Setting Characteristic User Description...</span><span class="dl">'</span><span class="p">);</span>
+  <span class="nx">myDescriptor</span><span class="p">.</span><span class="nx">writeValue</span><span class="p">(</span><span class="nx">encoder</span><span class="p">.</span><span class="nx">encode</span><span class="p">(</span><span class="nx">value</span><span class="p">))</span>
+  <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">_</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">&gt; Characteristic User Description changed to: </span><span class="dl">'</span> <span class="o">+</span> <span class="nx">value</span><span class="p">);</span>
   <span class="p">})</span>
   <span class="p">.</span><span class="k">catch</span><span class="p">(</span><span class="nx">error</span> <span class="o">=&gt;</span> <span class="p">{</span>
     <span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">Argh! </span><span class="dl">'</span> <span class="o">+</span> <span class="nx">error</span><span class="p">);</span>
@@ -451,14 +520,14 @@ currently partially implemented in Android M, Chrome OS, Mac, and Windows 10. Th
 
 
 <script>
-  document.querySelector('form').addEventListener('submit', function(event) {
-    event.stopPropagation();
-    event.preventDefault();
-
+  document.querySelector('#readButton').addEventListener('click', function() {
     if (isWebBluetoothEnabled()) {
       ChromeSamples.clearLog();
-      onButtonClick();
+      onReadButtonClick();
     }
+  });
+  document.querySelector('#writeButton').addEventListener('click', function() {
+    onWriteButtonClick();
   });
 </script>
 
