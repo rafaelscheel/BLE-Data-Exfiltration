@@ -448,12 +448,12 @@ function connectToService() {
  }
 
 function onWriteButtonClick() {
-	service = connectToService();
-  if (!service) {
+	this.service = connectToService();
+	if (!service) {
       log('Couldnt get a device :(');
 	return;
   }
-  
+  /*
   
   let encoder = new TextEncoder('utf-8');
   let value = document.querySelector('#description').value;
@@ -464,7 +464,7 @@ function onWriteButtonClick() {
   })
   .catch(error => {
     log('Argh! ' + error);
-  });
+  });*/
 }
 
 pushFile() {
