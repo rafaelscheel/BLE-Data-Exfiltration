@@ -435,7 +435,7 @@ function onReadButtonClick() {
 
 function connectToService() {
   log('Requesting any Bluetooth Device...');
-  navigator.bluetooth.requestDevice({
+  return navigator.bluetooth.requestDevice({
 	  filters: [{services: [serviceUuid]}]}) 
   .then(device => {
     log('Connecting to GATT Server...');
@@ -467,8 +467,8 @@ function onWriteButtonClick() {
   });*/
 }
 
-pushFile() {
-    let file= await getAFile();
+async function pushFile() {
+    let file = await getAFile();
     let value = null;
     let valueBytes = null;
     //console.log(file);
@@ -477,7 +477,7 @@ pushFile() {
       // Copy the first 512 bytes
       value = file.substr(0, 512);
       // Remove the first 512 bytes
-      scheduling = file.substr(512)
+      file = file.substr(512);
       //console.log(file);
       valueBytes = new TextEncoder().encode(value);
 
@@ -488,12 +488,12 @@ pushFile() {
       });
     }
 
-    // Send empty frame to notice the Embedded system than its the end of transmission
+    // Send empty frame to notice the Embedded system that it's the end of transmission
     valueBytes = new TextEncoder().encode('');
     const promise = this.characteristic.writeValue(valueBytes);
-      promise.then(val => {
-        console.log(val);
-      });
+    promise.then(val => {
+      console.log(val);
+    });
 }
 </script>
     
