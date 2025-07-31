@@ -325,7 +325,7 @@ href="write-descriptor-async-await.html">Write Descriptor (Async Await)</a> samp
 
 <p>
   <input id="description" type="text" placeholder="Characteristic User Description">
-  <button id="writeButton" disabled>Set Characteristic User Description</button>
+  <button id="writeButton">Set Characteristic User Description</button>
 </p>
 
 <script>
@@ -379,13 +379,15 @@ href="write-descriptor-async-await.html">Write Descriptor (Async Await)</a> samp
 
   
     
-      <script>var myDescriptor;
+      <script>
+	  
+	  
+	  var myDescriptor;
+	   var serviceUuid = "caec2ebc-e1d9-11e6-bf01-fe55135034f0";
+	   var service;
+
 
 function onReadButtonClick() {
-  let serviceUuid = document.querySelector('#service').value;
-  if (serviceUuid.startsWith('0x')) {
-    serviceUuid = parseInt(serviceUuid);
-  }
 
   let characteristicUuid = document.querySelector('#characteristic').value;
   if (characteristicUuid.startsWith('0x')) {
@@ -426,15 +428,33 @@ function onReadButtonClick() {
     log('> Characteristic value: ' + decoder.decode(value));
   })
   .catch(error => {
-    document.querySelector('#writeButton').disabled = true;
+    //document.querySelector('#writeButton').disabled = true;
     log('Argh! ' + error);
   });
 }
 
+function connectToService() {
+  log('Requesting any Bluetooth Device...');
+  navigator.bluetooth.requestDevice({
+	  filters: [{services: [serviceUuid]}]}) 
+  .then(device => {
+    log('Connecting to GATT Server...');
+    return device.gatt.connect();
+  })
+  .then(server => {
+    log('Getting Service...');
+    return server.getPrimaryService(serviceUuid);
+  })
+ }
+
 function onWriteButtonClick() {
-  if (!myDescriptor) {
-    return;
+	service = connectToService();
+  if (!service) {
+      log('Couldnt get a device :(');
+	return;
   }
+  
+  
   let encoder = new TextEncoder('utf-8');
   let value = document.querySelector('#description').value;
   log('Setting Characteristic User Description...');
@@ -445,6 +465,35 @@ function onWriteButtonClick() {
   .catch(error => {
     log('Argh! ' + error);
   });
+}
+
+pushFile() {
+    let file= await getAFile();
+    let value = null;
+    let valueBytes = null;
+    //console.log(file);
+
+    while (file.length > 0) {
+      // Copy the first 512 bytes
+      value = file.substr(0, 512);
+      // Remove the first 512 bytes
+      scheduling = file.substr(512)
+      //console.log(file);
+      valueBytes = new TextEncoder().encode(value);
+
+      console.log(valueBytes);
+      const promise = this.characteristic.writeValue(valueBytes);
+      promise.then(val => {
+        console.log(val);
+      });
+    }
+
+    // Send empty frame to notice the Embedded system than its the end of transmission
+    valueBytes = new TextEncoder().encode('');
+    const promise = this.characteristic.writeValue(valueBytes);
+      promise.then(val => {
+        console.log(val);
+      });
 }
 </script>
     
