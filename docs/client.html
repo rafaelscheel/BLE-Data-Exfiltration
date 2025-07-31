@@ -407,20 +407,23 @@ function onReadButtonClick() {
     log('Getting Characteristic...');
     return service.getCharacteristic(characteristicUuid);
   })
-  .then(characteristic => {
+  /*.then(characteristic => {
     log('Getting Descriptor...');
     return characteristic.getDescriptor('gatt.characteristic_user_description');
-  })
-  .then(descriptor => {
+  })*/
+  /*.then(descriptor => {
     document.querySelector('#writeButton').disabled =
         !descriptor.characteristic.properties.write;
     myDescriptor = descriptor;
     log('Reading Descriptor...');
     return descriptor.readValue();
+  })*/
+  .then( characteristic => {
+	return characteristic.readValue();
   })
   .then(value => {
     let decoder = new TextDecoder('utf-8');
-    log('> Characteristic User Description: ' + decoder.decode(value));
+    log('> Characteristic value: ' + decoder.decode(value));
   })
   .catch(error => {
     document.querySelector('#writeButton').disabled = true;
