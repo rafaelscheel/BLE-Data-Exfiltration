@@ -278,7 +278,7 @@ function onReadButtonClick() {
 
 function connectToService() {
   log('Requesting any Bluetooth Device...');
-  this.server = navigator.bluetooth.requestDevice({
+  this.service = navigator.bluetooth.requestDevice({
 	  filters: [{services: [serviceUuid]}]}) 
   .then(device => {
     log('Connecting to GATT Server...');
@@ -288,11 +288,10 @@ function connectToService() {
     log('Getting Service...');
     return server.getPrimaryService(serviceUuid);
   })
-  return server;
  }
 
 function onConnectServiceButtonClick() {
-	this.service = connectToService();
+	connectToService();
 	if (!service) {
       log('Couldnt get a device :(');
 	return;
@@ -303,7 +302,7 @@ function onConnectServiceButtonClick() {
 async function pushFile(bufferToSend, fileName) {
   if (!this.service) {
     log('Please connect to a service first.');
-    return;
+    throw new Error('Service not connected');
   }
   // Step 1: Inform server a new file is about to be sent and its name.
   if (!this.RecieveFileNameAndStartCharacteristic) {
