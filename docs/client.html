@@ -278,7 +278,7 @@ function onReadButtonClick() {
 
 function connectToService() {
   log('Requesting any Bluetooth Device...');
-  this.service = navigator.bluetooth.requestDevice({
+   navigator.bluetooth.requestDevice({
 	  filters: [{services: [serviceUuid]}]}) 
   .then(device => {
     log('Connecting to GATT Server...');
@@ -287,16 +287,14 @@ function connectToService() {
   .then(server => {
     log('Getting Service...');
     return server.getPrimaryService(serviceUuid);
+  }).then(srv => {
+    log('Service found!');
+    this.service = srv;
   })
  }
 
 function onConnectServiceButtonClick() {
 	connectToService();
-	if (!service) {
-      log('Couldnt get a device :(');
-	return;
-  }
-
 }
 
 async function pushFile(bufferToSend, fileName) {
