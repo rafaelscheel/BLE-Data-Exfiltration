@@ -101,30 +101,28 @@ currently partially implemented in Android M, Chrome OS, Mac, and Windows 10.</p
 </script>
 
 
-<p>This sample illustrates the use of the Web Bluetooth API to write to the
-descriptor "Characteristic User Description" on a nearby Bluetooth Low Energy
-Device. You may want to try this demo with the BLE Peripheral Simulator App
-from the <a target="_blank"
-href="https://play.google.com/store/apps/details?id=io.github.webbluetoothcg.bletestperipheral">Google
-Play Store</a> and check out the <a
-href="write-descriptor-async-await.html">Write Descriptor (Async Await)</a> sample.</p>
+<p>This is an example of writing and reading files over BLE. Be warned, the speed is roughly 1mb / minute! (Yes Minute!)
+  This is because we are using the GATT protocol which is not designed for high speed transfers and we are limited to 512 bytes per write.
+  Currently we do not expect a conformation for each write (writeValueWithoutResponse), which likely increases speed but might lead to package loss (I have not experienced this though).
+  We also read the whole file into the process memory on both sides (Client and Server). Hence beware of large files. Best ist to create ZIPs and split them into junks before sending. 
+</p>
 
 <p>
-  <button id="writeButton">Connect to service</button>
+  <button id="connectToServiceButton">Connect to service</button>
 
 </p>
 
-<h1>File Reader</h1>
-<p></p>
-<input type="file" id="file-input" />
+<h2>Send File</h2>
+<p>Will automatically send the file once selected.</p>
+<input type="file" id="file-input" disabled/>
 <div id="message"></div>
 
 
 
 
 <p>
-  <input id="description" type="text" placeholder="Characteristic User Description">
-      <button id="readButton">Read Button</button>
+  <!-- <input id="description" type="text" placeholder="Characteristic User Description">
+      <button id="readButton">Read Button</button> -->
 
 </p>
 
@@ -230,53 +228,7 @@ function showMessage(message, type) {
 
 
 
-function onReadButtonClick() {
-
-  let characteristicUuid = document.querySelector('#characteristic').value;
-  if (characteristicUuid.startsWith('0x')) {
-    characteristicUuid = parseInt(characteristicUuid);
-  }
-
-  log('Requesting any Bluetooth Device...');
-  navigator.bluetooth.requestDevice({
-	  filters: [{services: ["caec2ebc-e1d9-11e6-bf01-fe55135034f0"]}]}) 
-  .then(device => {
-    log('Connecting to GATT Server...');
-    return device.gatt.connect();
-  })
-  .then(server => {
-    log('Getting Service...');
-    return server.getPrimaryService(serviceUuid);
-  })
-  .then(service => {
-    log('Getting Characteristic...');
-    return service.getCharacteristic(characteristicUuid);
-  })
-  /*.then(characteristic => {
-    log('Getting Descriptor...');
-    return characteristic.getDescriptor('gatt.characteristic_user_description');
-  })*/
-  /*.then(descriptor => {
-    document.querySelector('#writeButton').disabled =
-        !descriptor.characteristic.properties.write;
-    myDescriptor = descriptor;
-    log('Reading Descriptor...');
-    return descriptor.readValue();
-  })*/
-  .then( characteristic => {
-	return characteristic.readValue();
-  })
-  .then(value => {
-    let decoder = new TextDecoder('utf-8');
-    log('> Characteristic value: ' + decoder.decode(value));
-  })
-  .catch(error => {
-    //document.querySelector('#writeButton').disabled = true;
-    log('Argh! ' + error);
-  });
-}
-
-function connectToService() {
+async function connectToService() {
   log('Requesting any Bluetooth Device...');
    navigator.bluetooth.requestDevice({
 	  filters: [{services: [serviceUuid]}]}) 
@@ -290,11 +242,13 @@ function connectToService() {
   }).then(srv => {
     log('Service found!');
     this.service = srv;
+      document.querySelector('#file-input').disabled = false;
+
   })
  }
 
-function onConnectServiceButtonClick() {
-	connectToService();
+async function onConnectServiceButtonClick() {
+  await connectToService();
 }
 
 async function pushFile(bufferToSend, fileName) {
@@ -333,14 +287,14 @@ async function pushFile(bufferToSend, fileName) {
 
 
 <script>
-  document.querySelector('#readButton').addEventListener('click', function() {
+ /* document.querySelector('#readButton').addEventListener('click', function() {
     if (isWebBluetoothEnabled()) {
       ChromeSamples.clearLog();
-      onReadButtonClick();
+      //onReadButtonClick();
     }
-  });
-  document.querySelector('#writeButton').addEventListener('click', function() {
-    onConnectServiceButtonClick();
+  });*/
+  document.querySelector('#connectToServiceButton').addEventListener('click', function() {
+   onConnectServiceButtonClick();
   });
 </script>
 
