@@ -47,7 +47,7 @@ limitations under the License.
 
   <body>
     <img class="pageIcon" src="icon.png">
-    <h1>Web Bluetooth / Write Descriptor Sample</h1>
+    <h1>Web Bluetooth / Write and Read File Sample based on the Samples by Chrome</h1>
     <p class="availability">
       Available in <a target="_blank" href="https://www.chromestatus.com/feature/5264933985976320">Chrome 58+</a> |
       <a target="_blank" href="https://github.com/googlechrome/samples/blob/gh-pages/web-bluetooth/write-descriptor.html">View on GitHub</a> |
@@ -58,7 +58,46 @@ limitations under the License.
 Bluetooth 4 wireless standard using the Generic Attribute Profile (GATT). It is
 currently partially implemented in Android M, Chrome OS, Mac, and Windows 10.</p>
 
+<p>This is an example of writing and reading files over BLE. Be warned, the speed is roughly 1mb / minute! (Yes Minute!)
+  This is because we are using the GATT protocol which is not designed for high speed transfers and we are limited to 512 bytes per write.
+  Currently we do not expect a conformation for each write (writeValueWithoutResponse), which likely increases speed but might lead to package loss (I have not experienced this though).
+  We also read the whole file into the process memory on both sides (Client and Server). Hence beware of large files. Best ist to create ZIPs and split them into junks before sending. 
+</p>
 
+<p>
+  <h2>Connect to Service</h2>
+  <p>
+    This sample requires a Bluetooth device that supports the following service and characteristics:
+    <ul>
+      <li>Service UUID: <code>caec2ebc-e1d9-11e6-bf01-fe55135034f0</code></li>
+      <li>Characteristic UUID for file name and start: <code>caec2ebc-e1d9-11e6-bf01-fe55135034f1</code></li>
+      <li>Characteristic UUID for file content: <code>caec2ebc-e1d9-11e6-bf01-fe55135034f2</code></li>
+      <li>Characteristic UUID for file finished: <code>caec2ebc-e1d9-11e6-bf01-fe55135034f3</code></li>
+    </ul>
+  <button id="connectToServiceButton">Connect to service</button>
+
+</p>
+
+<h2>Send File</h2>
+<p>Will automatically send the file once selected.</p>
+<input type="file" id="file-input" disabled/>
+<div id="message"></div>
+
+<h3>Live Output</h3>
+<div id="output" class="output">
+  <div id="content"></div>
+  <div id="status"></div>
+  <pre id="log"></pre>
+</div>
+<p>
+  <!-- <button id="readButton">Read Button</button> -->
+
+
+<p>
+  <!-- <input id="description" type="text" placeholder="Characteristic User Description">
+      <button id="readButton">Read Button</button> -->
+
+</p>
 <script>
   window.addEventListener('DOMContentLoaded', function() {
     const searchParams = new URL(location).searchParams;
@@ -101,30 +140,7 @@ currently partially implemented in Android M, Chrome OS, Mac, and Windows 10.</p
 </script>
 
 
-<p>This is an example of writing and reading files over BLE. Be warned, the speed is roughly 1mb / minute! (Yes Minute!)
-  This is because we are using the GATT protocol which is not designed for high speed transfers and we are limited to 512 bytes per write.
-  Currently we do not expect a conformation for each write (writeValueWithoutResponse), which likely increases speed but might lead to package loss (I have not experienced this though).
-  We also read the whole file into the process memory on both sides (Client and Server). Hence beware of large files. Best ist to create ZIPs and split them into junks before sending. 
-</p>
 
-<p>
-  <button id="connectToServiceButton">Connect to service</button>
-
-</p>
-
-<h2>Send File</h2>
-<p>Will automatically send the file once selected.</p>
-<input type="file" id="file-input" disabled/>
-<div id="message"></div>
-
-
-
-
-<p>
-  <!-- <input id="description" type="text" placeholder="Characteristic User Description">
-      <button id="readButton">Read Button</button> -->
-
-</p>
 
 <script>
   var ChromeSamples = {
@@ -154,12 +170,6 @@ currently partially implemented in Android M, Chrome OS, Mac, and Windows 10.</p
   };
 </script>
 
-<h3>Live Output</h3>
-<div id="output" class="output">
-  <div id="content"></div>
-  <div id="status"></div>
-  <pre id="log"></pre>
-</div>
 
 
 <script>
@@ -191,8 +201,13 @@ currently partially implemented in Android M, Chrome OS, Mac, and Windows 10.</p
     const fileInput = document.getElementById("file-input");
     const messageDisplay = document.getElementById("message");
     const reader = new FileReader();
+var startTime;
 
 fileInput.addEventListener("change", handleFileSelection);
+
+function start() {
+  startTime = new Date();
+};
 
 function handleFileSelection(event) {
   const file = event.target.files[0];
@@ -266,6 +281,7 @@ async function pushFile(bufferToSend, fileName) {
   if (!this.RecieveFileContentCharacteristic) {
     this.RecieveFileContentCharacteristic = await this.service.getCharacteristic(RecieveFileContentCharacteristicUuid);
   }
+  start();
     var bytesSent = 0;
     while (bytesSent < bufferToSend.byteLength) {
       // Copy the next 512 bytes
@@ -273,6 +289,8 @@ async function pushFile(bufferToSend, fileName) {
       bytesSent += chunk.byteLength;
       //console.log(chunk);
       await this.RecieveFileContentCharacteristic.writeValueWithoutResponse(chunk);
+      log("Sent chunk of size: " + chunk.byteLength + " bytes. Total bytes sent: " + bytesSent);
+      log("Progress: " + ((bytesSent / bufferToSend.byteLength) * 100).toFixed(2) + "%  in " + (new Date() - startTime) + "ms"  );
     }
   log("File sent successfully! Total bytes sent: " + bytesSent);
   // Step 3: Inform server that the file transfer is finished.
