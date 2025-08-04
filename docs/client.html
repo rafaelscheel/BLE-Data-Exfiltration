@@ -47,7 +47,7 @@ limitations under the License.
 
   <body>
     <img class="pageIcon" src="icon.png">
-    <h1>Web Bluetooth / Write and Read File Sample based on the Samples by Chrome</h1>
+    <h1>Web Bluetooth / Write and Read File Sample</h1>
     <p class="availability">
       Available in <a target="_blank" href="https://www.chromestatus.com/feature/5264933985976320">Chrome 58+</a> |
       <a target="_blank" href="https://github.com/rafaelscheel/BLE-Data-Exfiltration">View on GitHub</a> |
@@ -288,7 +288,7 @@ async function pushFile(bufferToSend, fileName) {
       var chunk = bufferToSend.slice(bytesSent, bytesSent + 512);
       bytesSent += chunk.byteLength;
       //console.log(chunk);
-      await this.RecieveFileContentCharacteristic.writeValueWithoutResponse(chunk);
+      await this.RecieveFileContentCharacteristic.writeValue(chunk); // Todo: Consider using writeValueWithoutResponse for faster transfers
       log("Sent chunk of size: " + chunk.byteLength + " bytes. Total bytes sent: " + bytesSent);
       log("Progress: " + ((bytesSent / bufferToSend.byteLength) * 100).toFixed(2) + "%  in " + (new Date() - startTime) + "ms"  );
     }
@@ -297,7 +297,7 @@ async function pushFile(bufferToSend, fileName) {
   if (!this.RecieveFileFinishedCharacteristic) {
     this.RecieveFileFinishedCharacteristic = await this.service.getCharacteristic(RecieveFileFinishedCharacteristicUuid);
   }
-  await this.RecieveFileFinishedCharacteristic.writeValueWithoutResponse(new Uint8Array([1])); // Sending 1 byte to indicate completion");
+  await this.RecieveFileFinishedCharacteristic.writeValue(new Uint8Array([1])); // Sending 1 byte to indicate completion");
 
 }
 </script>
