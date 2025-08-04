@@ -288,7 +288,7 @@ async function pushFile(bufferToSend, fileName) {
       var chunk = bufferToSend.slice(bytesSent, bytesSent + 512);
       bytesSent += chunk.byteLength;
       //console.log(chunk);
-      await this.RecieveFileContentCharacteristic.writeValue(chunk); // Todo: Consider using writeValueWithoutResponse for faster transfers
+      await this.RecieveFileContentCharacteristic.writeValueWithoutResponse(chunk); // Todo: Consider using writeValueWithoutResponse for faster transfers
       log("Sent chunk of size: " + chunk.byteLength + " bytes. Total bytes sent: " + bytesSent);
       log("Progress: " + ((bytesSent / bufferToSend.byteLength) * 100).toFixed(2) + "%  in " + (new Date() - startTime) + "ms"  );
     }
