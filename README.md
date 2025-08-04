@@ -3,5 +3,7 @@
 Set your "server" to developer mode
 
 After installing the UWP App:
-Allow the UWP App to store local files https://www.jasongaylord.com/blog/2021/11/17/uwp-file-access-denied -> Settings.
+1) Set your Windows into "Developer Mode" 
+![Developer Mode](image-1.png)
+2) Allow the UWP App to store local files https://www.jasongaylord.com/blog/2021/11/17/uwp-file-access-denied -> Settings.
 ![alt text](image.png)
