@@ -1,5 +1,7 @@
 # BLE-Data-Exfiltration
 A tiny tool to transfer files from and to a client via web bluetooth. Designed to interact with a target laptop during an assume breach red teaming.
+There is a server to install on your system and website to call on the "client" (target system). From the website you can read or write files to the client.
+I tried to develop it performant, but it is still preatty slow (a bit over 5mb / min).
 
 ## Using the Release
 
