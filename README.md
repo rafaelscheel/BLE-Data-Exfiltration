@@ -1,6 +1,6 @@
 # BLE-Data-Exfiltration
 
-Set your "server" to developer mode
+Set your "server" (any Windows System, BLE had issues for me with connecting to the service when running within a VM) to developer mode
 
 After installing the UWP App:
 1) Set your Windows into "Developer Mode"
