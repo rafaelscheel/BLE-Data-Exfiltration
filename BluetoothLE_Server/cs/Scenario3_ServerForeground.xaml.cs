@@ -14,6 +14,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection.Emit;
 using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
@@ -192,8 +193,8 @@ namespace SDKTemplate
             if (file != null)
             {
                 // File was picked
-                rootPage.NotifyUser($"Selected file: {send_FileName} with {send_NumberOfJunks} Junks.", NotifyType.StatusMessage);
                 await LoadFileToSendAsync(file);
+                rootPage.NotifyUser($"Selected file: {send_FileName} with {send_NumberOfJunks} Junks.", NotifyType.StatusMessage);
 
             }
             else
@@ -383,6 +384,9 @@ namespace SDKTemplate
 
         private async void RecieveFileNameAndStart_ReadRequestedAsync(GattLocalCharacteristic sender, GattReadRequestedEventArgs args)
         {
+            System.Diagnostics.Debug.WriteLine($"Recievied an read");
+
+
             // BT_Code: Processing a write request.
             using (args.GetDeferral())
             {
