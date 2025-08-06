@@ -31,12 +31,9 @@
                 There is no Bluetooth device, or the default Bluetooth device cannot act as a Bluetooth server.
             </TextBlock>
             <StackPanel x:Name="ServerPanel" Visibility="Visible">
-                <CheckBox x:Name="Publishing2MPHY" IsEnabled="False" Click="Publishing2MPHY_Click">
-                    <TextBlock TextWrapping="Wrap">
-                        Advertising with 2M PHY as secondary PHY (not in use atm) <Run x:Name="Publishing2MPHYReasonRun"/>
-                    </TextBlock>
-                </CheckBox>
+              
                 <Button x:Name="PublishButton" Content="Start Service" Click="PublishButton_Click" Margin="0,5,5,10"/>
+                <Button x:Name="FileSelectButton" Content="Send File" Click="FileSelectButtonn_Click" Margin="0,5,5,10"/>
                 <StackPanel Orientation="Horizontal">
                     <StackPanel Orientation="Vertical">
                         <StackPanel Orientation="Horizontal"/>

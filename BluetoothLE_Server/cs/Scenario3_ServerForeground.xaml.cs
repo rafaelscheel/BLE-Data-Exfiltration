@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.Devices.Bluetooth;
@@ -45,11 +46,6 @@ namespace SDKTemplate
         private GattLocalCharacteristic resultCharacteristic;
         private GattServiceProviderAdvertisingParameters advertisingParameters;
 
-        // Implementing the service.
-        private int operand1Value = 0;
-        private int operand2Value = 0;
-        CalculatorOperators operatorValue = 0;
-        private int resultValue = 0;
 
         private bool navigatedTo = false;
         private bool startingService = false; // reentrancy protection
@@ -65,6 +61,13 @@ namespace SDKTemplate
         private int loop = 0;
         private Dictionary<int, byte[]> fileContent = new Dictionary<int, byte[]>();
         private int expectedJunks = 0;
+
+        // To Send a file
+        private string sendFileName = "noName.blob";
+        private int sendJunks;
+        private Dictionary<int, byte[]> fileToSend = new Dictionary<int, byte[]>();
+
+    
 
         private static string FormatBytes(long bytes)
         {
@@ -84,14 +87,6 @@ namespace SDKTemplate
             RecieveFileNameAndStart = 1,
             RecieveFileContent = 2,
             RecieveFileFinished = 3,
-        }
-
-        private enum CalculatorOperators
-        {
-            Add = 1,
-            Subtract = 2,
-            Multiply = 3,
-            Divide = 4,
         }
 
         #region UI Code
@@ -131,19 +126,7 @@ namespace SDKTemplate
                 PeripheralWarning.Visibility = Visibility.Visible;
             }
 
-            // Check whether the local Bluetooth adapter and Windows support 2M and Coded PHY.
-            if (!FeatureDetection.AreExtendedAdvertisingPhysAndScanParametersSupported)
-            {
-                Publishing2MPHYReasonRun.Text = "(Not supported by this version of Windows)";
-            }
-            else if (adapter != null && adapter.IsLowEnergyUncoded2MPhySupported)
-            {
-                Publishing2MPHY.IsEnabled = true;
-            }
-            else
-            {
-                Publishing2MPHYReasonRun.Text = "(Not supported by default Bluetooth adapter)";
-            }
+          
         }
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)
@@ -196,26 +179,22 @@ namespace SDKTemplate
             }
             PublishButton.Content = serviceProvider == null ? "Start Service": "Stop Service";
         }
-
-        private void Publishing2MPHY_Click(object sender, RoutedEventArgs e)
+        private async void FileSelectButtonn_Click(object sender, RoutedEventArgs e)
         {
-            // Update the advertising parameters based on the checkbox.
-            bool shouldAdvertise2MPHY = Publishing2MPHY.IsChecked.Value;
-            advertisingParameters.UseLowEnergyUncoded1MPhyAsSecondaryPhy = !shouldAdvertise2MPHY;
-            advertisingParameters.UseLowEnergyUncoded2MPhyAsSecondaryPhy = shouldAdvertise2MPHY;
-
-            if (serviceProvider != null)
-            {
-                // Reconfigure the advertising parameters on the fly.
-                serviceProvider.UpdateAdvertisingParameters(advertisingParameters);
-            }
+            var picker = new Windows.Storage.Pickers.FileOpenPicker();
+            picker.ViewMode = Windows.Storage.Pickers.PickerViewMode.Thumbnail;
+            picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.PicturesLibrary;
+            picker.FileTypeFilter.Add("*");
+            Windows.Storage.StorageFile file = await picker.PickSingleFileAsync();
         }
+
 
         private void UnsubscribeServiceEvents()
         {
             if (RecieveFileNameAndStartCharacteristic != null)
             {
                 RecieveFileNameAndStartCharacteristic.WriteRequested -= RecieveFileNameAndStart_WriteRequestedAsync;
+                RecieveFileNameAndStartCharacteristic.ReadRequested -=  RecieveFileNameAndStart_ReadRequestedAsync;
             }
             if (RecieveFileContentCharacterictic != null)
             {
@@ -269,6 +248,7 @@ namespace SDKTemplate
             }
             RecieveFileNameAndStartCharacteristic = result.Characteristic;
             RecieveFileNameAndStartCharacteristic.WriteRequested += RecieveFileNameAndStart_WriteRequestedAsync;
+            RecieveFileNameAndStartCharacteristic.ReadRequested += RecieveFileNameAndStart_ReadRequestedAsync;
 
             result = await provider.Service.CreateCharacteristicAsync(
                 Constants.RecieveFileContentCharacteristicUuid, Constants.gattRecieveFileContentParameters);
@@ -383,6 +363,22 @@ namespace SDKTemplate
                 // result.SubscribedClient: The details on the remote client.
                 // result.Status: The GattCommunicationStatus
                 // result.ProtocolError: iff Status == GattCommunicationStatus.ProtocolError
+            }
+        }
+
+        private async void RecieveFileNameAndStart_ReadRequestedAsync(GattLocalCharacteristic sender, GattReadRequestedEventArgs args)
+        {
+            // BT_Code: Processing a write request.
+            using (args.GetDeferral())
+            {
+                // Get the request information.  This requires device access before an app can access the device's request.
+                GattReadRequest request = await args.GetRequestAsync();
+                if (request == null)
+                {
+                    // No access allowed to the device.  Application should indicate this to the user.
+                    return;
+                }
+                ProcessReadCharacteristic(request, RecieveCharacteristics.RecieveFileNameAndStart);
             }
         }
 
@@ -543,5 +539,23 @@ namespace SDKTemplate
 
             //
         }
+        private async void ProcessReadCharacteristic(GattReadRequest request, RecieveCharacteristics opCode)
+        {
+            System.Diagnostics.Debug.WriteLine($"Recievied an read of type: {opCode} ");
+            byte[] source;
+            switch (opCode)
+            {
+                case RecieveCharacteristics.RecieveFileNameAndStart:
+                    // BT_Code: Recieve the file name and start the file transfer.
+                    
+                    byte[] filenameToSendAsBytes = Encoding.ASCII.GetBytes(sendFileName);
+                    byte[] fileSizeToSendAsBytes = BitConverter.GetBytes(sendJunks);
+                    byte[] bufferToSend = fileSizeToSendAsBytes.Concat(filenameToSendAsBytes).ToArray();
+                    request.RespondWithValue (GattHelper.Converters.GattConvert.ToIBuffer(bufferToSend));
+                    break;
+            }
+           
+        }
+
     }
 }
