@@ -58,7 +58,7 @@ limitations under the License.
 Bluetooth 4 wireless standard using the Generic Attribute Profile (GATT). It is
 currently partially implemented in Android M, Chrome OS, Mac, and Windows 10.</p>
 
-<p>This is an example of writing and reading files over BLE. Be warned, the speed is roughly 1mb / minute! (Yes Minute!)
+<p>This is an example of writing and reading files over BLE. Be warned, the speed is roughly 5mb / minute! (Yes Minute!)
   This is because we are using the GATT protocol which is not designed for high speed transfers and we are limited to 512 bytes per write.
   Currently we do not expect a conformation for each write (writeValueWithoutResponse), which likely increases speed but might lead to package loss (I have not experienced this though).
   We also read the whole file into the process memory on both sides (Client and Server). Hence beware of large files. Best ist to create ZIPs and split them into junks before sending. 
@@ -78,9 +78,14 @@ currently partially implemented in Android M, Chrome OS, Mac, and Windows 10.</p
 
 </p>
 
-<h2>Send File</h2>
+<h3>Send File</h3>
 <p>Will automatically send the file once selected.</p>
-<input type="file" id="file-input" disabled/> <!-- TODO: After testing set default to disabled-->
+<input type="file" id="file-input" disabled/> 
+<div id="message"></div>
+
+<h3>Receive File</h3>
+<p>Will automatically receive the file once clicked.</p>
+<input type="button" id="readFile" disabled/> 
 <div id="message"></div>
 
 <h3>Live Output</h3>
@@ -199,11 +204,19 @@ currently partially implemented in Android M, Chrome OS, Mac, and Windows 10.</p
     var RecieveFileFinishedCharacteristicUuid = "caec2ebc-e1d9-11e6-bf01-fe55135034f3";
 
     const fileInput = document.getElementById("file-input");
+    const readFileButton = document.getElementById("readFile");
+
+
     const messageDisplay = document.getElementById("message");
     const reader = new FileReader();
-var startTime;
+    var startTime;
+
+    // Reader stuff
+    var read_expecteNumberOfJunks = 0;
+    var read_fileName = "adsf.txt";
 
 fileInput.addEventListener("change", handleFileSelection);
+readFileButton.addEventListener("click", handleReadFileButtonClick);
 
 function start() {
   startTime = new Date();
@@ -258,9 +271,31 @@ async function connectToService() {
     log('Service found!');
     this.service = srv;
       document.querySelector('#file-input').disabled = false;
+      document.querySelector('#readFile').disabled = false;
 
   })
  }
+
+async function handleReadFileButtonClick() {
+  if (!this.service) {
+    log('Please connect to a service first.');
+    return;
+  }
+  if (!this.RecieveFileNameAndStartCharacteristic) {
+    this.RecieveFileNameAndStartCharacteristic = await this.service.getCharacteristic(RecieveFileNameAndStartCharacteristicUuid);
+  }
+  log('Reading file name and number of le junks...');
+  try {
+    const value = await this.RecieveFileNameAndStartCharacteristic.readValue();
+    read_expecteNumberOfJunks = new Int32Array(value.buffer.slice(0, 4))[0];
+    const fileNameBytes = new Uint8Array(value.buffer.slice(4));
+    const decoder = new TextDecoder('utf-8');
+    read_fileName = decoder.decode(fileNameBytes);
+    log('File name received: ' + read_fileName + ', Number of junks: ' + read_expecteNumberOfJunks);
+  } catch (error) {
+    log('Error reading file name: ' + error);
+  }
+}
 
 async function onConnectServiceButtonClick() {
   await connectToService();
