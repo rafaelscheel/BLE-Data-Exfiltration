@@ -265,6 +265,12 @@ async function connectToService() {
 async function onConnectServiceButtonClick() {
   await connectToService();
 }
+function mergeArrays(buffer1, buffer2) {
+  var tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
+  tmp.set(new Uint8Array(buffer1), 0);
+  tmp.set(new Uint8Array(buffer2), buffer1.byteLength);
+  return tmp.buffer;
+}
 
 async function pushFile(bufferToSend, fileName) {
   if (!this.service) {
@@ -278,13 +284,7 @@ async function pushFile(bufferToSend, fileName) {
   var NumberOfJunksToSend = Math.ceil(bufferToSend.byteLength / 508);
   var NumberOfJunksToSendBuffer = new Int32Array([NumberOfJunksToSend]).buffer;
   var fileNameBuffer = new TextEncoder().encode(fileName);
-  var pushFileBuffer = ArrayBuffer.concat(
-    NumberOfJunksToSendBuffer,
-    fileNameBuffer
-  );
-
-  await  this.RecieveFileNameAndStartCharacteristic.writeValue(pushFileBuffer);
-
+  await  this.RecieveFileNameAndStartCharacteristic.writeValue(mergeArrays(NumberOfJunksToSendBuffer, fileNameBuffer)); 
   // Step 2: Send file 512 bytes at a time.
   if (!this.RecieveFileContentCharacteristic) {
     this.RecieveFileContentCharacteristic = await this.service.getCharacteristic(RecieveFileContentCharacteristicUuid);
@@ -298,12 +298,8 @@ async function pushFile(bufferToSend, fileName) {
       bytesSent += chunk.byteLength;
       //console.log(chunk);
       junksSent+=1;
-      var CurrentJunkBuffer = new Int32Array([junksSent]).buffer;
-      var junkToSendBuffer = ArrayBuffer.concat(
-        CurrentJunkBuffer,
-        chunk
-      );
-      await this.RecieveFileContentCharacteristic.writeValueWithoutResponse(junkToSendBuffer); // Todo: Consider using writeValueWithoutResponse for faster transfers
+      var CurrentJunkIDBuffer = new Int32Array([junksSent]).buffer;
+      await this.RecieveFileContentCharacteristic.writeValue(mergeArrays(CurrentJunkBuffer, chunk)); // Todo: Consider using writeValueWithoutResponse for faster transfers
       log("Sent chunk of size: " + chunk.byteLength + " bytes. Total bytes sent: " + bytesSent);
       log("Progress: " + ((bytesSent / bufferToSend.byteLength) * 100).toFixed(2) + "%  in " + (new Date() - startTime) + "ms"  );
     }
