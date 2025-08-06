@@ -8,12 +8,13 @@
 // PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
 //
 //*********************************************************
+using GattHelper.Converters;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Threading;
 using System.Threading.Tasks;
-using GattHelper.Converters;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
 using Windows.Storage;
@@ -55,9 +56,13 @@ namespace SDKTemplate
         //StorageFolder outFolder;
         StorageFile outFile;
         private IRandomAccessStream stream;
+        private Object streamLock = new Object();
         private DataWriter memoryWriter;
-        private string fileName;
-        private int loop = 1;
+        private Object memoryWriterLock = new Object();
+        private bool memoryWriterInitialized = false;
+        private string fileName = "noNameRecieved.txt";
+        private readonly string defaultFilename = "noNameRecieved.txt";
+        private int loop = 0;
 
         private static string FormatBytes(long bytes)
         {
@@ -473,6 +478,25 @@ namespace SDKTemplate
                 }
             }
         }
+        private void InitializeMemoryWriter()
+        {
+            if (memoryWriterInitialized) { return; }
+            // Probably not needed. Also not sure if we need to cover the case, where the stream is currently being written to while we try to initialize a new one.
+
+            lock (streamLock)
+            {
+                lock (memoryWriterLock)
+                {
+                    if (memoryWriterInitialized) { return; }
+                    // BT_Code: Initialize the stream and writer.
+                    stream = new Windows.Storage.Streams.InMemoryRandomAccessStream();
+                    memoryWriter = new Windows.Storage.Streams.DataWriter(stream);
+                    memoryWriter.ByteOrder = Windows.Storage.Streams.ByteOrder.LittleEndian;
+                    memoryWriterInitialized = true;
+
+                }
+            }
+        }
 
         /// <summary>
         /// BT_Code: Processing a write request.Takes in a GATT Write request and updates UX based on opcode.
@@ -498,30 +522,30 @@ namespace SDKTemplate
 
             switch (opCode)
             {
+                // These might arrive out of order.
+                // We currently can handle a clean client that sends the right commands even out of order. We can not handle a client that sends commands multiple times (e.g. sending RecieveFileFinished twice in short successon).
+
                 case RecieveCharacteristics.RecieveFileNameAndStart:
                     // BT_Code: Recieve the file name and start the file transfer.
                     fileName = GattHelper.Converters.GattConvert.ToUTF8String(val);
                     System.Diagnostics.Debug.WriteLine($"Starting a new File. File Name: {fileName} ");
-
-                    stream = new Windows.Storage.Streams.InMemoryRandomAccessStream();
-                    memoryWriter =  new Windows.Storage.Streams.DataWriter(stream);
-                    memoryWriter.ByteOrder = Windows.Storage.Streams.ByteOrder.LittleEndian;
-                    System.Diagnostics.Debug.WriteLine($"Writer all setup!: {fileName} ");
-
                     break;
                 case RecieveCharacteristics.RecieveFileContent:
-                    System.Diagnostics.Debug.WriteLine($"Appending to file: {fileName} / Recieved: {FormatBytes(loop*512)}. ");
+                    // If we recieve them out of order, we store them out of order :(
                     loop += 1;
-
+                    System.Diagnostics.Debug.WriteLine($"Appending to file: {fileName} / Recieved: {FormatBytes(loop*512)}. ");
+                    InitializeMemoryWriter();
                     memoryWriter.WriteBuffer(val);
                     break;
                 case RecieveCharacteristics.RecieveFileFinished:
                     System.Diagnostics.Debug.WriteLine($"Finished the file: {fileName} ");
-
                     System.Diagnostics.Debug.WriteLine($"Stored file in DOWNLOAD Folder: {fileName} ");
-
                     rootPage.NotifyUser($"Finished the file: {fileName} ", NotifyType.StatusMessage);
-
+                    InitializeMemoryWriter();
+                    // We should somehow make sure to wait that we handled all "RecieveFileContent".
+                    // Sleep for a moment can not be the best solution. 
+                    // TODO: Recieve the file size and wait for that many "RecieveFileContent" messages.
+                    System.Threading.Thread.Sleep(1000);
                     await memoryWriter.StoreAsync();
 
                     StorageFile canvasFile = await DownloadsFolder.CreateFileAsync(fileName, CreationCollisionOption.GenerateUniqueName);
@@ -530,12 +554,15 @@ namespace SDKTemplate
                             await reader.LoadAsync((uint)stream.Size);
                             var buffer = new byte[(int)stream.Size];
                             reader.ReadBytes(buffer);
-                            await Windows.Storage.FileIO.WriteBytesAsync(canvasFile, buffer);
-                        }
-                 
-                    fileName = null;
+                            await FileIO.WriteBytesAsync(canvasFile, buffer);
+                    }
+                    loop = 0; // Reset the loop counter for the next file.
+                    fileName = defaultFilename;
                     memoryWriter.DetachStream();
-                    
+                    memoryWriterInitialized = false;   
+                    memoryWriter = null;
+                    stream.Dispose();
+                    stream = null; 
                     break;
             }
             // Complete the request if needed
