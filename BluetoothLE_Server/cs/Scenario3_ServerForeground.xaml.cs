@@ -238,26 +238,7 @@ namespace SDKTemplate
 
         private void UpdateUI()
         {
-            string operationText = "N/A";
-            switch (operatorValue)
-            {
-                case CalculatorOperators.Add:
-                    operationText = "+";
-                    break;
-                case CalculatorOperators.Subtract:
-                    operationText = "\u2212"; // Minus sign
-                    break;
-                case CalculatorOperators.Multiply:
-                    operationText = "\u00d7"; // Multiplication sign
-                    break;
-                case CalculatorOperators.Divide:
-                    operationText = "\u00f7"; // Division sign
-                    break;
-            }
-            OperationTextBox.Text = operationText;
-            Operand1TextBox.Text = operand1Value.ToString();
-            Operand2TextBox.Text = operand2Value.ToString();
-            ResultTextBox.Text = resultValue.ToString();
+            // TODO        
         }
         #endregion
 
@@ -551,7 +532,7 @@ namespace SDKTemplate
                     fileContent.Clear();    
                     loop = 0; // Reset the loop counter for the next file.
                     expectedJunks = 0;
-                    await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, UpdateUI);
+                    await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, UpdateUI); // In the example this was done for each characteristic write, but caused performance issues. Hence we only do it at the end atm. 
                     break;
             }
             // Probably crashes both side, if we wait too long in the last RecieveFileFinished step.

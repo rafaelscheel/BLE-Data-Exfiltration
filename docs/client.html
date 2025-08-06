@@ -300,8 +300,10 @@ async function pushFile(bufferToSend, fileName) {
       junksSent+=1;
       var CurrentJunkIDBuffer = new Int32Array([junksSent]).buffer;
       await this.RecieveFileContentCharacteristic.writeValueWithoutResponse(mergeArrays(CurrentJunkIDBuffer, chunk)); // Todo: Consider using writeValueWithoutResponse for faster transfers
-      log("Sent chunk of size: " + chunk.byteLength + " bytes. Total bytes sent: " + bytesSent);
-      log("Progress: " + ((bytesSent / bufferToSend.byteLength) * 100).toFixed(2) + "%  in " + (new Date() - startTime) + "ms"  );
+      if (junksSent % 200 === 0) { // Log progress every 200 chunks
+       // log("Sent chunk of size: " + chunk.byteLength + " bytes. Total bytes sent: " + bytesSent);
+        log("Progress: " + ((bytesSent / bufferToSend.byteLength) * 100).toFixed(2) + "%  in " + (new Date() - startTime) + "ms"  );
+      }
     }
   log("File sent successfully! Total bytes sent: " + bytesSent);
   // Step 3: Inform server that the file transfer is finished.

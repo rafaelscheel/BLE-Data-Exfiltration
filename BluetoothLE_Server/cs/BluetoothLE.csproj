@@ -81,17 +81,8 @@
     <Compile Include="GattConverter.cs" />
     <Compile Include="PresentationFormats.cs" />
     <Compile Include="SampleConfiguration.cs" />
-    <Compile Include="Scenario1_Discovery.xaml.cs">
-      <DependentUpon>Scenario1_Discovery.xaml</DependentUpon>
-    </Compile>
     <Compile Include="Scenario3_ServerForeground.xaml.cs">
       <DependentUpon>Scenario3_ServerForeground.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Scenario2_Client.xaml.cs">
-      <DependentUpon>Scenario2_Client.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Scenario4_ServerBackground.xaml.cs">
-      <DependentUpon>Scenario4_ServerBackground.xaml</DependentUpon>
     </Compile>
   </ItemGroup>
   <ItemGroup>
@@ -110,11 +101,6 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="..\shared\Scenario1_Discovery.xaml">
-      <Link>Scenario1_Discovery.xaml</Link>
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
     <Page Include="$(SharedContentDir)\xaml\Styles.xaml">
       <Link>Styles\Styles.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
@@ -122,16 +108,6 @@
     </Page>
     <Page Include="..\shared\Scenario3_ServerForeground.xaml">
       <Link>Scenario3_ServerForeground.xaml</Link>
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="..\shared\Scenario2_Client.xaml">
-      <Link>Scenario2_Client.xaml</Link>
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="..\shared\Scenario4_ServerBackground.xaml">
-      <Link>Scenario4_ServerBackground.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
