@@ -10,8 +10,10 @@
 //*********************************************************
 using GattHelper.Converters;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
@@ -56,13 +58,13 @@ namespace SDKTemplate
         //StorageFolder outFolder;
         StorageFile outFile;
         private IRandomAccessStream stream;
-        private Object streamLock = new Object();
         private DataWriter memoryWriter;
-        private Object memoryWriterLock = new Object();
         private bool memoryWriterInitialized = false;
         private string fileName = "noNameRecieved.txt";
         private readonly string defaultFilename = "noNameRecieved.txt";
         private int loop = 0;
+        private Dictionary<int, byte[]> fileContent = new Dictionary<int, byte[]>();
+        private int expectedJunks = 0;
 
         private static string FormatBytes(long bytes)
         {
@@ -385,35 +387,7 @@ namespace SDKTemplate
             }
         }
 
-        private void ComputeResult()
-        {
-            switch (operatorValue)
-            {
-                case CalculatorOperators.Add:
-                    resultValue = operand1Value + operand2Value;
-                    break;
-                case CalculatorOperators.Subtract:
-                    resultValue = operand1Value - operand2Value;
-                    break;
-                case CalculatorOperators.Multiply:
-                    resultValue = operand1Value * operand2Value;
-                    break;
-                case CalculatorOperators.Divide:
-                    if (operand2Value == 0 || (operand1Value == Int32.MinValue && operand2Value == -1))
-                    {
-                        rootPage.NotifyUser("Division overflow", NotifyType.ErrorMessage);
-                    }
-                    else
-                    {
-                        resultValue = operand1Value / operand2Value;
-                    }
-                    break;
-                default:
-                    rootPage.NotifyUser("Invalid Operator", NotifyType.ErrorMessage);
-                    break;
-            }
-            NotifyClientDevices(resultValue);
-        }
+    
 
         private async void NotifyClientDevices(int computedValue)
         {
@@ -483,19 +457,15 @@ namespace SDKTemplate
             if (memoryWriterInitialized) { return; }
             // Probably not needed. Also not sure if we need to cover the case, where the stream is currently being written to while we try to initialize a new one.
 
-            lock (streamLock)
-            {
-                lock (memoryWriterLock)
-                {
-                    if (memoryWriterInitialized) { return; }
+          
                     // BT_Code: Initialize the stream and writer.
                     stream = new Windows.Storage.Streams.InMemoryRandomAccessStream();
                     memoryWriter = new Windows.Storage.Streams.DataWriter(stream);
                     memoryWriter.ByteOrder = Windows.Storage.Streams.ByteOrder.LittleEndian;
                     memoryWriterInitialized = true;
 
-                }
-            }
+                
+            
         }
 
         /// <summary>
@@ -507,7 +477,7 @@ namespace SDKTemplate
         {
             IBuffer val = request.Value;
             System.Diagnostics.Debug.WriteLine($"Recievied an write of type: {opCode} ");
-
+            byte[] source;
 
 
             if (val == null)
@@ -527,25 +497,39 @@ namespace SDKTemplate
 
                 case RecieveCharacteristics.RecieveFileNameAndStart:
                     // BT_Code: Recieve the file name and start the file transfer.
-                    fileName = GattHelper.Converters.GattConvert.ToUTF8String(val);
+                    source = GattHelper.Converters.GattConvert.ToByteArray(val);
+                    expectedJunks = BitConverter.ToInt32(source.Take(4).ToArray(), 0);
+                    fileName = System.Text.Encoding.UTF8.GetString(source.Skip(4).ToArray()); 
                     System.Diagnostics.Debug.WriteLine($"Starting a new File. File Name: {fileName} ");
+                    System.Diagnostics.Debug.WriteLine($"Expected Junks: { expectedJunks}");
                     break;
                 case RecieveCharacteristics.RecieveFileContent:
                     // If we recieve them out of order, we store them out of order :(
                     loop += 1;
                     System.Diagnostics.Debug.WriteLine($"Appending to file: {fileName} / Recieved: {FormatBytes(loop*512)}. ");
-                    InitializeMemoryWriter();
-                    memoryWriter.WriteBuffer(val);
+                    source = GattHelper.Converters.GattConvert.ToByteArray(val);
+                    int JunkNumber = BitConverter.ToInt32(source.Take(4).ToArray(), 0);
+                    fileContent.Add(JunkNumber, source.Skip(4).ToArray());
                     break;
                 case RecieveCharacteristics.RecieveFileFinished:
-                    System.Diagnostics.Debug.WriteLine($"Finished the file: {fileName} ");
-                    System.Diagnostics.Debug.WriteLine($"Stored file in DOWNLOAD Folder: {fileName} ");
-                    rootPage.NotifyUser($"Finished the file: {fileName} ", NotifyType.StatusMessage);
+                    System.Diagnostics.Debug.WriteLine($"RecieveFileFinished for file: {fileName} ");
+                    while (expectedJunks > 0 & loop < expectedJunks)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Not all Junks recieved. Loop: {loop} ; expected: {expectedJunks} ");
+                        System.Threading.Thread.Sleep(2000);
+                    }
                     InitializeMemoryWriter();
-                    // We should somehow make sure to wait that we handled all "RecieveFileContent".
-                    // Sleep for a moment can not be the best solution. 
-                    // TODO: Recieve the file size and wait for that many "RecieveFileContent" messages.
-                    System.Threading.Thread.Sleep(1000);
+                    for (int i = 1; i < expectedJunks; i++)
+                    {
+                        if (fileContent.ContainsKey(i))
+                        {
+                            memoryWriter.WriteBytes(fileContent[i]);
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Junk {i} not found in fileContent. Skipping.");
+                        }
+                    }
                     await memoryWriter.StoreAsync();
 
                     StorageFile canvasFile = await DownloadsFolder.CreateFileAsync(fileName, CreationCollisionOption.GenerateUniqueName);
@@ -556,13 +540,15 @@ namespace SDKTemplate
                             reader.ReadBytes(buffer);
                             await FileIO.WriteBytesAsync(canvasFile, buffer);
                     }
-                    loop = 0; // Reset the loop counter for the next file.
                     fileName = defaultFilename;
                     memoryWriter.DetachStream();
                     memoryWriterInitialized = false;   
                     memoryWriter = null;
                     stream.Dispose();
                     stream = null; 
+                    fileContent.Clear();    
+                    loop = 0; // Reset the loop counter for the next file.
+                    expectedJunks = 0;
                     break;
             }
             // Complete the request if needed
@@ -570,8 +556,6 @@ namespace SDKTemplate
             {
                 request.Respond();
             }
-
-            ComputeResult();
 
             await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, UpdateUI);
         }

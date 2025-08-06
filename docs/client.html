@@ -275,7 +275,15 @@ async function pushFile(bufferToSend, fileName) {
   if (!this.RecieveFileNameAndStartCharacteristic) {
     this.RecieveFileNameAndStartCharacteristic = await this.service.getCharacteristic(RecieveFileNameAndStartCharacteristicUuid);
   }
-  await  this.RecieveFileNameAndStartCharacteristic.writeValue(new TextEncoder().encode(fileName));
+  var NumberOfJunksToSend = Math.ceil(bufferToSend.byteLength / 508);
+  var NumberOfJunksToSendBuffer = new Int32Array([NumberOfJunksToSend]).buffer;
+  var fileNameBuffer = new TextEncoder().encode(fileName);
+  var pushFileBuffer = ArrayBuffer.concat(
+    NumberOfJunksToSendBuffer,
+    fileNameBuffer
+  );
+
+  await  this.RecieveFileNameAndStartCharacteristic.writeValue(pushFileBuffer);
 
   // Step 2: Send file 512 bytes at a time.
   if (!this.RecieveFileContentCharacteristic) {
@@ -283,12 +291,19 @@ async function pushFile(bufferToSend, fileName) {
   }
   start();
     var bytesSent = 0;
+    var junksSent = 0;
     while (bytesSent < bufferToSend.byteLength) {
-      // Copy the next 512 bytes
-      var chunk = bufferToSend.slice(bytesSent, bytesSent + 512);
+      // Copy the next 508 bytes
+      var chunk = bufferToSend.slice(bytesSent, bytesSent + 508);
       bytesSent += chunk.byteLength;
       //console.log(chunk);
-      await this.RecieveFileContentCharacteristic.writeValue(chunk); // Todo: Consider using writeValueWithoutResponse for faster transfers
+      junksSent+=1;
+      var CurrentJunkBuffer = new Int32Array([junksSent]).buffer;
+      var junkToSendBuffer = ArrayBuffer.concat(
+        CurrentJunkBuffer,
+        chunk
+      );
+      await this.RecieveFileContentCharacteristic.writeValueWithoutResponse(junkToSendBuffer); // Todo: Consider using writeValueWithoutResponse for faster transfers
       log("Sent chunk of size: " + chunk.byteLength + " bytes. Total bytes sent: " + bytesSent);
       log("Progress: " + ((bytesSent / bufferToSend.byteLength) * 100).toFixed(2) + "%  in " + (new Date() - startTime) + "ms"  );
     }
