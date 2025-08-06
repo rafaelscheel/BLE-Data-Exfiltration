@@ -299,7 +299,7 @@ async function pushFile(bufferToSend, fileName) {
       //console.log(chunk);
       junksSent+=1;
       var CurrentJunkIDBuffer = new Int32Array([junksSent]).buffer;
-      await this.RecieveFileContentCharacteristic.writeValue(mergeArrays(CurrentJunkBuffer, chunk)); // Todo: Consider using writeValueWithoutResponse for faster transfers
+      await this.RecieveFileContentCharacteristic.writeValue(mergeArrays(CurrentJunkIDBuffer, chunk)); // Todo: Consider using writeValueWithoutResponse for faster transfers
       log("Sent chunk of size: " + chunk.byteLength + " bytes. Total bytes sent: " + bytesSent);
       log("Progress: " + ((bytesSent / bufferToSend.byteLength) * 100).toFixed(2) + "%  in " + (new Date() - startTime) + "ms"  );
     }
