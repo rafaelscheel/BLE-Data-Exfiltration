@@ -10,8 +10,8 @@
 
     <Identity
       Name="Microsoft.SDKSamples.BluetoothLE.CS"
-      Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
-      Version="0.1.0.0" />
+      Publisher="CN=Scra Test Cert"
+      Version="0.1.1.0" />
 
     <mp:PhoneIdentity PhoneProductId="a2214a83-6d31-41dd-b75f-0b8e56be182d" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 

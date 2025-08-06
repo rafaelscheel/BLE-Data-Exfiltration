@@ -1,19 +1,22 @@
 # BLE-Data-Exfiltration
+A tiny tool to transfer files from a client via web bluetooth 
 
 ## Using the Release
 
 Set your "server" (any Windows System, BLE had issues for me with connecting to the service when running within a VM) to developer mode
 
-After installing the UWP App:
-1) Set your Windows into "Developer Mode"
+Install the App:
+1) Download the release and unpack the ZIP
+2) Set your Windows into "Developer Mode"
 
 ![Developer Mode](image-1.png)
 
-2) Allow the UWP App to store local files (Details see chapter settings: https://www.jasongaylord.com/blog/2021/11/17/uwp-file-access-denied).
+3) Install the Package: Add-AppxPackage .\BluetoothLE_0.1.1.0_x86_x64.msixbundle -AllowUnsigned
+4) Allow the UWP App to store local files (Details see chapter settings: https://www.jasongaylord.com/blog/2021/11/17/uwp-file-access-denied).
 
 ![alt text](image.png)
 
-3) On the client: Navigate to  https://rafaelscheel.github.io/BLE-Data-Exfiltration/client.html (the code is in the docs folder) in Chrome or Edge. Web Bluetooth can be disabled by policy: https://learn.microsoft.com/en-us/deployedge/microsoft-edge-browser-policies/defaultwebbluetoothguardsetting 
+5) On the client: Navigate to  https://rafaelscheel.github.io/BLE-Data-Exfiltration/client.html (the code is in the docs folder) in Chrome or Edge. Web Bluetooth can be disabled by policy: https://learn.microsoft.com/en-us/deployedge/microsoft-edge-browser-policies/defaultwebbluetoothguardsetting 
 
 
 ## Run Server from Visual Studio
