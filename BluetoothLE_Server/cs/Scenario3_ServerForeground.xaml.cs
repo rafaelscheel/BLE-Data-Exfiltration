@@ -14,6 +14,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using System.Threading;
@@ -50,8 +51,10 @@ namespace SDKTemplate
         private bool navigatedTo = false;
         private bool startingService = false; // reentrancy protection
 
-        //private static string outputPath = @"c:\temp\";
-        //StorageFolder outFolder;
+        //General
+        private readonly int junkSize = 508;
+
+        //Recieve File;
         StorageFile outFile;
         private IRandomAccessStream stream;
         private DataWriter memoryWriter;
@@ -63,8 +66,8 @@ namespace SDKTemplate
         private int expectedJunks = 0;
 
         // To Send a file
-        private string sendFileName = "noName.blob";
-        private int sendJunks;
+        private string send_FileName = "noName.blob";
+        private int send_NumberOfJunks;
         private Dictionary<int, byte[]> fileToSend = new Dictionary<int, byte[]>();
 
     
@@ -186,6 +189,18 @@ namespace SDKTemplate
             picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.PicturesLibrary;
             picker.FileTypeFilter.Add("*");
             Windows.Storage.StorageFile file = await picker.PickSingleFileAsync();
+            if (file != null)
+            {
+                // File was picked
+                rootPage.NotifyUser($"Selected file: {send_FileName} with {send_NumberOfJunks} Junks.", NotifyType.StatusMessage);
+                await LoadFileToSendAsync(file);
+
+            }
+            else
+            {
+                // No file was picked
+                rootPage.NotifyUser("No file selected", NotifyType.ErrorMessage);
+            }
         }
 
 
@@ -539,23 +554,43 @@ namespace SDKTemplate
 
             //
         }
-        private async void ProcessReadCharacteristic(GattReadRequest request, RecieveCharacteristics opCode)
+        private void ProcessReadCharacteristic(GattReadRequest request, RecieveCharacteristics opCode)
         {
             System.Diagnostics.Debug.WriteLine($"Recievied an read of type: {opCode} ");
-            byte[] source;
             switch (opCode)
             {
                 case RecieveCharacteristics.RecieveFileNameAndStart:
                     // BT_Code: Recieve the file name and start the file transfer.
                     
-                    byte[] filenameToSendAsBytes = Encoding.ASCII.GetBytes(sendFileName);
-                    byte[] fileSizeToSendAsBytes = BitConverter.GetBytes(sendJunks);
-                    byte[] bufferToSend = fileSizeToSendAsBytes.Concat(filenameToSendAsBytes).ToArray();
+                    byte[] filenameToSendAsBytes = Encoding.ASCII.GetBytes(send_FileName);
+                    byte[] numberOfJunksAsBytes = BitConverter.GetBytes(send_NumberOfJunks);
+                    byte[] bufferToSend = numberOfJunksAsBytes.Concat(filenameToSendAsBytes).ToArray();
                     request.RespondWithValue (GattHelper.Converters.GattConvert.ToIBuffer(bufferToSend));
                     break;
             }
            
         }
-
+        private async Task LoadFileToSendAsync(StorageFile file)
+        {
+            fileToSend.Clear();
+            send_FileName = file.Name;
+            using (var stream = await file.OpenReadAsync())
+            {
+                var buffer = new byte[junkSize];
+                int index = 1;
+                using (var inputStream = stream.AsStreamForRead())
+                {
+                    int bytesRead;
+                    while ((bytesRead = await inputStream.ReadAsync(buffer, 0, junkSize)) > 0)
+                    {
+                        byte[] chunk = new byte[bytesRead];
+                        Array.Copy(buffer, 0, chunk, 0, bytesRead);
+                        fileToSend.Add(index, chunk);
+                        index++;
+                    }
+                }
+                send_NumberOfJunks = fileToSend.Count;
+            }
+        }
     }
 }
