@@ -85,7 +85,7 @@ currently partially implemented in Android M, Chrome OS, Mac, and Windows 10.</p
 
 <h3>Receive File</h3>
 <p>Will automatically receive the file once clicked.</p>
-<input type="button" id="readFile" disabled/> 
+<input type="button" id="readFile" disabled value="Read File" /> 
 <div id="message"></div>
 
 <h3>Live Output</h3>
@@ -277,16 +277,16 @@ async function connectToService() {
  }
 
 async function handleReadFileButtonClick() {
-  if (!this.service) {
+  if (!service) {
     log('Please connect to a service first.');
-    return;
+    throw new Error('Service not connected');
   }
-  if (!this.RecieveFileNameAndStartCharacteristic) {
-    this.RecieveFileNameAndStartCharacteristic = await this.service.getCharacteristic(RecieveFileNameAndStartCharacteristicUuid);
+  if (!RecieveFileNameAndStartCharacteristic) {
+    RecieveFileNameAndStartCharacteristic = await service.getCharacteristic(RecieveFileNameAndStartCharacteristicUuid);
   }
   log('Reading file name and number of le junks...');
   try {
-    const value = await this.RecieveFileNameAndStartCharacteristic.readValue();
+    const value = await RecieveFileNameAndStartCharacteristic.readValue();
     read_expecteNumberOfJunks = new Int32Array(value.buffer.slice(0, 4))[0];
     const fileNameBytes = new Uint8Array(value.buffer.slice(4));
     const decoder = new TextDecoder('utf-8');
