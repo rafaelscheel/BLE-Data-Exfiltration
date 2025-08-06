@@ -1,5 +1,5 @@
 # BLE-Data-Exfiltration
-A tiny tool to transfer files from a client via web bluetooth 
+A tiny tool to transfer files from and to a client via web bluetooth. Designed to interact with a target laptop during an assume breach red teaming.
 
 ## Using the Release
 
