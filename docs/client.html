@@ -299,7 +299,7 @@ async function pushFile(bufferToSend, fileName) {
       //console.log(chunk);
       junksSent+=1;
       var CurrentJunkIDBuffer = new Int32Array([junksSent]).buffer;
-      await this.RecieveFileContentCharacteristic.writeValue(mergeArrays(CurrentJunkIDBuffer, chunk)); // Todo: Consider using writeValueWithoutResponse for faster transfers
+      await this.RecieveFileContentCharacteristic.writeValueWithoutResponse(mergeArrays(CurrentJunkIDBuffer, chunk)); // Todo: Consider using writeValueWithoutResponse for faster transfers
       log("Sent chunk of size: " + chunk.byteLength + " bytes. Total bytes sent: " + bytesSent);
       log("Progress: " + ((bytesSent / bufferToSend.byteLength) * 100).toFixed(2) + "%  in " + (new Date() - startTime) + "ms"  );
     }
@@ -308,7 +308,7 @@ async function pushFile(bufferToSend, fileName) {
   if (!this.RecieveFileFinishedCharacteristic) {
     this.RecieveFileFinishedCharacteristic = await this.service.getCharacteristic(RecieveFileFinishedCharacteristicUuid);
   }
-  await this.RecieveFileFinishedCharacteristic.writeValue(new Uint8Array([1])); // Sending 1 byte to indicate completion");
+  await this.RecieveFileFinishedCharacteristic.writeValueWithoutResponse(new Uint8Array([1])); // Sending 1 byte to indicate completion");
 
 }
 </script>

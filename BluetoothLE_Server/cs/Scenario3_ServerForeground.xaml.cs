@@ -512,14 +512,16 @@ namespace SDKTemplate
                     fileContent.Add(JunkNumber, source.Skip(4).ToArray());
                     break;
                 case RecieveCharacteristics.RecieveFileFinished:
+                    // Complete the request if needed
+                   
                     System.Diagnostics.Debug.WriteLine($"RecieveFileFinished for file: {fileName} ");
                     while (expectedJunks > 0 & loop < expectedJunks)
                     {
                         System.Diagnostics.Debug.WriteLine($"Not all Junks recieved. Loop: {loop} ; expected: {expectedJunks} ");
-                        System.Threading.Thread.Sleep(2000);
+                        System.Threading.Thread.Sleep(100);
                     }
                     InitializeMemoryWriter();
-                    for (int i = 1; i < expectedJunks; i++)
+                    for (int i = 1; i <= expectedJunks; i++)
                     {
                         if (fileContent.ContainsKey(i))
                         {
@@ -549,15 +551,16 @@ namespace SDKTemplate
                     fileContent.Clear();    
                     loop = 0; // Reset the loop counter for the next file.
                     expectedJunks = 0;
+                    await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, UpdateUI);
                     break;
             }
-            // Complete the request if needed
+            // Probably crashes both side, if we wait too long in the last RecieveFileFinished step.
             if (request.Option == GattWriteOption.WriteWithResponse)
             {
                 request.Respond();
             }
 
-            await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, UpdateUI);
+            //
         }
     }
 }
