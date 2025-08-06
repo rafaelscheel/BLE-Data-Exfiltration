@@ -286,12 +286,12 @@ async function handleReadFileButtonClick() {
   }
   log('Reading file name and number of le junks...');
   try {
-    const value = await RecieveFileNameAndStartCharacteristic.readValue();
-      log('Recieved file name and number of junks successfully!');
+    var value = await RecieveFileNameAndStartCharacteristic.readValue();
+    log('Recieved file name and number of junks successfully!');
 
     read_expecteNumberOfJunks = new Int32Array(value.buffer.slice(0, 4))[0];
-    const fileNameBytes = new Uint8Array(value.buffer.slice(4));
-    const decoder = new TextDecoder('utf-8');
+    var fileNameBytes = new Uint8Array(value.buffer.slice(4));
+    var decoder = new TextDecoder('utf-8');
     read_fileName = decoder.decode(fileNameBytes);
     log('File name received: ' + read_fileName + ', Number of junks: ' + read_expecteNumberOfJunks);
   } catch (error) {
