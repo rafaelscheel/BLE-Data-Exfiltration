@@ -69,6 +69,7 @@ namespace SDKTemplate
         // To Send a file
         private string send_FileName = "noName.blob";
         private int send_NumberOfJunks;
+        private uint send_currentJunk = 1;
         private Dictionary<uint, byte[]> fileToSend = new Dictionary<uint, byte[]>();
 
     
@@ -622,11 +623,12 @@ namespace SDKTemplate
                         request.RespondWithProtocolError(GattProtocolError.InvalidAttributeValueLength);
                         return;
                     }
-                    if (fileToSend.ContainsKey(request.Offset + 1))
+                    if (fileToSend.ContainsKey(send_currentJunk))
                     {
-                        byte[] junkToSend = fileToSend[request.Offset +1 ];
-                        byte[] offsetBuffer = BitConverter.GetBytes(request.Offset + 1);
+                        byte[] junkToSend = fileToSend[send_currentJunk];
+                        byte[] offsetBuffer = BitConverter.GetBytes(send_currentJunk);
                         request.RespondWithValue(GattHelper.Converters.GattConvert.ToIBuffer(junkToSend.Concat(offsetBuffer).ToArray()));
+                        send_currentJunk += 1;
                     }
                     else
                     {
@@ -657,6 +659,7 @@ namespace SDKTemplate
                     }
                 }
                 send_NumberOfJunks = fileToSend.Count;
+                send_currentJunk = 1;
             }
         }
     }
