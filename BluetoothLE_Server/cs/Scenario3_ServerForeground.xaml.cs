@@ -69,7 +69,7 @@ namespace SDKTemplate
         // To Send a file
         private string send_FileName = "noName.blob";
         private int send_NumberOfJunks;
-        private Dictionary<int, byte[]> fileToSend = new Dictionary<int, byte[]>();
+        private Dictionary<uint, byte[]> fileToSend = new Dictionary<uint, byte[]>();
 
     
 
@@ -215,10 +215,12 @@ namespace SDKTemplate
             if (RecieveFileContentCharacterictic != null)
             {
                 RecieveFileContentCharacterictic.WriteRequested -= RecieveFileContent_WriteRequestedAsync;
+                RecieveFileContentCharacterictic.ReadRequested -= RecieveFileContent_ReadRequestedAsync;
             }
             if (RecieveFileFinishedCharacteristic != null)
             {
                 RecieveFileFinishedCharacteristic.WriteRequested -= RecieveFileFinished_WriteRequestedAsync;
+                RecieveFileFinishedCharacteristic.ReadRequested -= RecieveFileFinished_ReadRequestedAsync;
             }
             if (resultCharacteristic != null)
             {
@@ -276,6 +278,7 @@ namespace SDKTemplate
 
             RecieveFileContentCharacterictic = result.Characteristic;
             RecieveFileContentCharacterictic.WriteRequested += RecieveFileContent_WriteRequestedAsync;
+            RecieveFileContentCharacterictic.ReadRequested += RecieveFileContent_ReadRequestedAsync;
 
             result = await provider.Service.CreateCharacteristicAsync(
                 Constants.RecieveFileFinishedCharacteristicUuid, Constants.gattRecieveFileFinishedParameters);
@@ -287,6 +290,7 @@ namespace SDKTemplate
 
             RecieveFileFinishedCharacteristic = result.Characteristic;
             RecieveFileFinishedCharacteristic.WriteRequested += RecieveFileFinished_WriteRequestedAsync;
+            RecieveFileFinishedCharacteristic.ReadRequested += RecieveFileFinished_ReadRequestedAsync;
 
             result = await provider.Service.CreateCharacteristicAsync(Constants.ResultCharacteristicUuid, Constants.gattResultParameters);
             if (result.Error != BluetoothError.Success)
@@ -384,7 +388,7 @@ namespace SDKTemplate
 
         private async void RecieveFileNameAndStart_ReadRequestedAsync(GattLocalCharacteristic sender, GattReadRequestedEventArgs args)
         {
-            System.Diagnostics.Debug.WriteLine($"Recievied an read");
+            System.Diagnostics.Debug.WriteLine($"Recievied a read");
 
 
             // BT_Code: Processing a write request.
@@ -417,6 +421,24 @@ namespace SDKTemplate
             }
         }
 
+        private async void RecieveFileContent_ReadRequestedAsync(GattLocalCharacteristic sender, GattReadRequestedEventArgs args)
+        {
+            System.Diagnostics.Debug.WriteLine($"Recievied a read");
+
+
+            // BT_Code: Processing a write request.
+            using (args.GetDeferral())
+            {
+                // Get the request information.  This requires device access before an app can access the device's request.
+                GattReadRequest request = await args.GetRequestAsync();
+                if (request == null)
+                {
+                    // No access allowed to the device.  Application should indicate this to the user.
+                    return;
+                }
+                ProcessReadCharacteristic(request, RecieveCharacteristics.RecieveFileContent);
+            }
+        }
         private async void RecieveFileContent_WriteRequestedAsync(GattLocalCharacteristic sender, GattWriteRequestedEventArgs args)
         {
             using (args.GetDeferral())
@@ -431,7 +453,24 @@ namespace SDKTemplate
                 ProcessWriteCharacteristic(request, RecieveCharacteristics.RecieveFileContent);
             }
         }
+        private async void RecieveFileFinished_ReadRequestedAsync(GattLocalCharacteristic sender, GattReadRequestedEventArgs args)
+        {
+            System.Diagnostics.Debug.WriteLine($"Recievied a read");
 
+
+            // BT_Code: Processing a write request.
+            using (args.GetDeferral())
+            {
+                // Get the request information.  This requires device access before an app can access the device's request.
+                GattReadRequest request = await args.GetRequestAsync();
+                if (request == null)
+                {
+                    // No access allowed to the device.  Application should indicate this to the user.
+                    return;
+                }
+                ProcessReadCharacteristic(request, RecieveCharacteristics.RecieveFileFinished);
+            }
+        }
         private async void RecieveFileFinished_WriteRequestedAsync(GattLocalCharacteristic sender, GattWriteRequestedEventArgs args)
         {
             using (args.GetDeferral())
@@ -506,6 +545,10 @@ namespace SDKTemplate
                     source = GattHelper.Converters.GattConvert.ToByteArray(val);
                     int JunkNumber = BitConverter.ToInt32(source.Take(4).ToArray(), 0);
                     fileContent.Add(JunkNumber, source.Skip(4).ToArray());
+                    if(JunkNumber % 200 == 0)
+                    {
+                        rootPage.NotifyUser($"Recieved Junk {JunkNumber} of {expectedJunks} (Read {Math.Floor((double)JunkNumber / expectedJunks * 100)}%). ", NotifyType.StatusMessage);
+                    }
                     break;
                 case RecieveCharacteristics.RecieveFileFinished:
                     // Complete the request if needed
@@ -571,8 +614,28 @@ namespace SDKTemplate
                     byte[] bufferToSend = numberOfJunksAsBytes.Concat(filenameToSendAsBytes).ToArray();
                     request.RespondWithValue (GattHelper.Converters.GattConvert.ToIBuffer(bufferToSend));
                     break;
+                case RecieveCharacteristics.RecieveFileContent:
+                    // BT_Code: Recieve the file content.
+                    System.Diagnostics.Debug.WriteLine($"RecieveFileContent Read Request. Offset: {request.Offset}");
+                    if (fileToSend.Count == 0)
+                    {
+                        request.RespondWithProtocolError(GattProtocolError.InvalidAttributeValueLength);
+                        return;
+                    }
+                    if (fileToSend.ContainsKey(request.Offset + 1))
+                    {
+                        byte[] junkToSend = fileToSend[request.Offset +1 ];
+                        byte[] offsetBuffer = BitConverter.GetBytes(request.Offset + 1);
+                        request.RespondWithValue(GattHelper.Converters.GattConvert.ToIBuffer(junkToSend.Concat(offsetBuffer).ToArray()));
+                    }
+                    else
+                    {
+                        // No more junks to send.
+                        request.RespondWithProtocolError(GattProtocolError.InvalidAttributeValueLength);
+                    }
+                    break;
             }
-           
+
         }
         private async Task LoadFileToSendAsync(StorageFile file)
         {
@@ -581,7 +644,7 @@ namespace SDKTemplate
             using (var stream = await file.OpenReadAsync())
             {
                 var buffer = new byte[junkSize];
-                int index = 1;
+                uint index = 1;
                 using (var inputStream = stream.AsStreamForRead())
                 {
                     int bytesRead;

@@ -297,6 +297,31 @@ async function handleReadFileButtonClick() {
   } catch (error) {
     log('Error reading file name: ' + error);
   }
+  log('Reading file content...');
+  if (!RecieveFileContentCharacteristic) {
+    RecieveFileContentCharacteristic = await service.getCharacteristic(RecieveFileContentCharacteristicUuid);
+  }
+  var readedJunks = 0;
+  var readedFileContent = service.getCharacteristic(RecieveFileContentCharacteristicUuid)
+    .then(characteristic => {
+      return characteristic.startNotifications().then(() => {
+        characteristic.addEventListener('characteristicvaluechanged', event => {
+          var value = event.target.value;
+          var CurrentJunkID = new Int32Array(value.buffer.slice(0, 4))[0];
+          var fileContentBytes = new Uint8Array(value.buffer.slice(4));
+          readedJunks += 1;
+          log("Received chunk " + CurrentJunkID + " of size: " + fileContentBytes.byteLength + " bytes. Total junks received: " + readedJunks);
+          if (readedJunks === read_expecteNumberOfJunks) {
+            log("All junks received! Total junks: " + read_expecteNumberOfJunks);
+            log("File name: " + read_fileName);
+            // Here you can process the complete file content
+          }
+        });
+      });
+    })
+    .catch(error => {
+      log('Error reading file content: ' + error);
+    });
 }
 
 async function onConnectServiceButtonClick() {

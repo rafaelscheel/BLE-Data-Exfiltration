@@ -12,24 +12,34 @@ namespace SDKTemplate
         public static GattLocalCharacteristicParameters gattRecieveFileNameAndStartParameters { get; } = new GattLocalCharacteristicParameters
         {
             CharacteristicProperties = GattCharacteristicProperties.Write |
-                                       GattCharacteristicProperties.WriteWithoutResponse,
+                                       GattCharacteristicProperties.WriteWithoutResponse |
+                                       GattCharacteristicProperties.Read,
+
+
             WriteProtectionLevel = GattProtectionLevel.Plain,
+            ReadProtectionLevel = GattProtectionLevel.Plain,
+
             UserDescription = "RecieveFileNameAndStart Characteristic"
         };
 
         public static GattLocalCharacteristicParameters gattRecieveFileContentParameters { get; } = new GattLocalCharacteristicParameters
         {
             CharacteristicProperties = GattCharacteristicProperties.Write |
-                                       GattCharacteristicProperties.WriteWithoutResponse,
+                                       GattCharacteristicProperties.WriteWithoutResponse |
+                                       GattCharacteristicProperties.Read,
             WriteProtectionLevel = GattProtectionLevel.Plain,
+            ReadProtectionLevel = GattProtectionLevel.Plain,
+
             UserDescription = "RecieveFileContent Characteristic"
         };
 
         public static GattLocalCharacteristicParameters gattRecieveFileFinishedParameters { get; } = new GattLocalCharacteristicParameters
         {
             CharacteristicProperties = GattCharacteristicProperties.Write |
-                                       GattCharacteristicProperties.WriteWithoutResponse,
+                                       GattCharacteristicProperties.WriteWithoutResponse |
+                                       GattCharacteristicProperties.Read,
             WriteProtectionLevel = GattProtectionLevel.Plain,
+            ReadProtectionLevel = GattProtectionLevel.Plain,
             UserDescription = "RecieveFileFinished Characteristic"
         };
 
