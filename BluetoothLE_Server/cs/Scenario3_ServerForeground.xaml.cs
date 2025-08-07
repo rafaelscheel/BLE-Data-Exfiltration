@@ -627,7 +627,7 @@ namespace SDKTemplate
                     {
                         byte[] junkToSend = fileToSend[send_currentJunk];
                         byte[] offsetBuffer = BitConverter.GetBytes(send_currentJunk);
-                        request.RespondWithValue(GattHelper.Converters.GattConvert.ToIBuffer(junkToSend.Concat(offsetBuffer).ToArray()));
+                        request.RespondWithValue(GattHelper.Converters.GattConvert.ToIBuffer(offsetBuffer.Concat(junkToSend).ToArray()));
                         send_currentJunk += 1;
                     }
                     else

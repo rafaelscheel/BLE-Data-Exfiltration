@@ -29,3 +29,11 @@ It is recomended to run the Windows Universal Platform App from within VS.
 1) Build -> Rebuild BluetoothLE (not the Solution!)
 2) Build -> Deoploy BluetoothLE (this installs the App on your computer)
 3) Start with or without debugging. Without debugging will help the file transfer performance.
+
+
+## File Read
+The file transfer to the client is currently synchronus and thus extremly slow (send a read of a junk -> wait for an answer -> repeat).
+1) Start the server
+2) Load the file into the server (Click "Send File")
+3) Start the client and connect to the server
+4) Read the file (Click read file -> Wil be downloaded)

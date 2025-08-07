@@ -304,14 +304,14 @@ async function handleReadFileButtonClick() {
   if (!RecieveFileContentCharacteristic) {
     RecieveFileContentCharacteristic = await service.getCharacteristic(RecieveFileContentCharacteristicUuid);
   }
-      log('Reading file content...');
+      log('Reading file content: ' + read_expecteNumberOfJunks + ' junks expected...');
 
   read_fileContent.clear();
   var readedJunks = 0;
   while (readedJunks < read_expecteNumberOfJunks) {
     try {
       var value = await RecieveFileContentCharacteristic.readValue();
-      var currentJunkID = new Int32Array(value.buffer.slice(0, 4))[0];
+      var currentJunkID = new Uint32Array(value.buffer.slice(0, 4))[0];
       var chunk = value.buffer.slice(4);
       read_fileContent.set(currentJunkID, chunk);
       readedJunks++;
@@ -321,7 +321,27 @@ async function handleReadFileButtonClick() {
       break;
     }
   }
-  
+    let totalLength = 0;
+    for (let chunk of read_fileContent.values()) {
+      totalLength += chunk.byteLength;
+    }
+    let resultArray = new Uint8Array(totalLength);
+    let offset = 0;
+    for (let i = 1; i <= read_fileContent.size; i++) {
+      let chunk = new Uint8Array(read_fileContent.get(i));
+      resultArray.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    log('All chunks merged into a single byte array of length: ' + resultArray.length);
+    const blob = new Blob([resultArray]);
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = read_fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+    log('File downloaded: ' + read_fileName);
 }
 
 async function onConnectServiceButtonClick() {
