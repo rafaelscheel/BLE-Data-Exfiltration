@@ -29,6 +29,7 @@ namespace SDKTemplate
                                        GattCharacteristicProperties.Read,
             WriteProtectionLevel = GattProtectionLevel.Plain,
             ReadProtectionLevel = GattProtectionLevel.Plain,
+            
 
             UserDescription = "RecieveFileContent Characteristic"
         };

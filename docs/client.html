@@ -298,11 +298,29 @@ async function handleReadFileButtonClick() {
   } catch (error) {
     log('Error reading file name: ' + error);
   }
-  log('Reading file content...');
+
+
+  // Read the file content in chunks and store it in the read_fileContent map
   if (!RecieveFileContentCharacteristic) {
     RecieveFileContentCharacteristic = await service.getCharacteristic(RecieveFileContentCharacteristicUuid);
   }
+      log('Reading file content...');
+
+  read_fileContent.clear();
   var readedJunks = 0;
+  while (readedJunks < read_expecteNumberOfJunks) {
+    try {
+      var value = await RecieveFileContentCharacteristic.readValue();
+      var currentJunkID = new Int32Array(value.buffer.slice(0, 4))[0];
+      var chunk = value.buffer.slice(4);
+      read_fileContent.set(currentJunkID, chunk);
+      readedJunks++;
+      log('Received chunk ' + currentJunkID + ' of size: ' + chunk.byteLength + ' bytes.');
+    } catch (error) {
+      log('Error reading file content: ' + error);
+      break;
+    }
+  }
   
 }
 
