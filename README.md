@@ -13,7 +13,9 @@ Install the App:
 
 ![Developer Mode](image-1.png)
 
-3) Install the Package: Add-AppxPackage .\BluetoothLE_0.1.1.0_x86_x64.msixbundle -AllowUnsigned
+3) Install the Package:
+ Add-AppxPackage .\BluetoothLE_0.1.1.0_x86_x64.msixbundle -AllowUnsigned
+ run install.ps1
 4) Allow the UWP App to store local files (Details see chapter settings: https://www.jasongaylord.com/blog/2021/11/17/uwp-file-access-denied).
 
 ![alt text](image.png)
